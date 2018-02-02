@@ -15,7 +15,7 @@ library(R2jags)
 # Notation:
 # y(t) = response variable observated at times t. In these files time can be discrete or continuous
 # t_k = time of change point k - these are the key parameters to be estimated, k = 1, .., K - K is the number of change points
-# alpha_k = intercept term - possibly variging
+# alpha_k = intercept term - possibly varyiing
 # beta_k = slope value for period k
 # sigma = overall residual standard deviation
 
@@ -40,10 +40,10 @@ library(R2jags)
 # We can use it to pick out which side of the change point(s) we're on
 
 # Priors
-alpha ~ normal(0, 100)
-beta ~ normal(0, 100)
-sigma ~ uniform(0, 100)
-t_1 ~ uniform(t_min, t_max) # Restrict the change point to the range of the data
+# alpha ~ normal(0, 100)
+# beta ~ normal(0, 100)
+# sigma ~ uniform(0, 100)
+# t_1 ~ uniform(t_min, t_max) # Restrict the change point to the range of the data
 
 # Simulate data -----------------------------------------------------------
 
@@ -208,7 +208,7 @@ real_data_run = jags(data = real_data,
                      n.thin=8)
 
 # Plot output
-print(real_data_run) # Not great R-hat values - might need a longer run
+print(real_data_run) # Not great R-hat values - might need a longer run (or more change points!)
 
 # Plot the change point
 with(hadcrut,
