@@ -13,13 +13,13 @@ library(R2jags)
 
 # Description of the Bayesian model fitted in this file
 # Notation:
-# y_t = repsonse variable for observation t=1,..,N
-# x_t = explanatory variable for obs t
+# y_i = repsonse variable for observation t=i,..,N
+# x_i = explanatory variable for obs i
 # alpha, beta = intercept and slope parameters to be estimated
 # sigma = residual standard deviation
 
 # Likelihood:
-# y_t ~ N(alpha + beta * x[i], sigma^2)
+# y[i] ~ N(alpha + beta * x[i], sigma^2)
 # Prior
 # alpha ~ N(0,100) - vague priors
 # beta ~ N(0,100)
@@ -28,14 +28,14 @@ library(R2jags)
 # Simulate data -----------------------------------------------------------
 
 # Some R code to simulate data from the above model
-T = 100
+n = 100
 alpha = 2
 beta = 3
 sigma = 1
 # Set the seed so this is repeatable
 set.seed(123)
-x = sort(runif(T, 0, 10)) # Sort as it makes the plotted lines neater
-y = rnorm(T, mean = alpha + beta * x, sd = sigma)
+x = sort(runif(n, 0, 10)) # Sort as it makes the plotted lines neater
+y = rnorm(n, mean = alpha + beta * x, sd = sigma)
 
 # Also creat a plot
 plot(x, y)
@@ -49,23 +49,22 @@ model_code = '
 model
 {
   # Likelihood
-  for (t in 1:T) {
-    y[t] ~ dnorm(alpha + beta * x[t],tau)
+  for (i in 1:n) {
+    y[i] ~ dnorm(alpha + beta * x[i], sigma^-2)
   }
 
   # Priors
-  alpha ~ dnorm(0.0,0.01)
-  beta ~ dnorm(0.0,0.01)
-  tau <- 1/pow(sigma,2) # Turn precision into standard deviation
-  sigma ~ dunif(0.0,10.0)
+  alpha ~ dnorm(0, 100^-2)
+  beta ~ dnorm(0, 100^-2)
+  sigma ~ dunif(0, 10)
 }
 '
 
 # Set up the data
-model_data = list(T = T, y = y, x = x)
+model_data = list(n = n, y = y, x = x)
 
 # Choose the parameters to watch
-model_parameters =  c("alpha","beta","sigma")
+model_parameters =  c("alpha", "beta", "sigma")
 
 # Run the model
 model_run = jags(data = model_data,
@@ -86,8 +85,8 @@ traceplot(model_run)
 
 # Create a plot of the posterior mean regression line
 post = print(model_run)
-alpha_mean = post$mean$alpha
-beta_mean = post$mean$beta
+alpha_mean = post$mean$alpha[1]
+beta_mean = post$mean$beta[1]
 
 plot(x, y)
 lines(x, alpha_mean + beta_mean * x, col = 'red')
@@ -112,7 +111,7 @@ with(sea_level,plot(year_AD,sea_level_m))
 
 # Set up the data
 real_data = with(sea_level,
-                  list(T = nrow(sea_level),
+                  list(n = nrow(sea_level),
                        y = sea_level_m,
                        x = year_AD))
 
@@ -130,8 +129,8 @@ print(real_data_run)
 
 # Plot of posterior line
 post = print(real_data_run)
-alpha_mean = post$mean$alpha
-beta_mean = post$mean$beta
+alpha_mean = post$mean$alpha[1]
+beta_mean = post$mean$beta[1]
 
 x = sea_level$year_AD
 with(sea_level,plot(year_AD,sea_level_m))
