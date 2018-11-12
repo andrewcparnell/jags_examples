@@ -75,15 +75,30 @@ plot(model_run)
 print(model_run)
 traceplot(model_run)
 
-# -------------------
+# Plotting the results -------------------
 pars <- model_run$BUGSoutput$summary[c(1, 2, 4)]
-H <- t*pars[3] * exp(pars[1] * x_1 + pars[2] * x_2)
-# Survival function 
-S <- 1 - exp(-H)
+surv_func <- function(i){
+  H <- pars[3] * exp(pars[1] * x_1[i] + pars[2] * x_2[i])
+  
+  # Survival function 
+  S <- exp(-t * H)
+  return(S)
+}
 
-df <- data.frame(S, t, x_1, x_2, H, pred_1 = pars[3] * exp(pars[1] * x_1)) 
+survs <- c(1, 50, 100, 250, 500, 1000) %>%
+  purrr::map(surv_func) %>% 
+  purrr::map_dfc(enframe) %>% 
+  select_if(str_detect(colnames(.), 'value')) %>% 
+  set_names(paste0(
+    "x_1 = ", round(x_1[c(1, 50, 100, 250, 500, 1000)], 1), ",
+  x_2 = ", round(x_2[c(1, 50, 100, 250, 500, 1000)], 1))) %>% 
+  tidyr::gather(value = 'surv') %>% 
+  dplyr::mutate(time = rep(t, 6))
 
-df %>% 
-  ggplot(aes(t, S)) +
-  geom_point(colour = 'orange') +
+survs %>% 
+  ggplot(aes(y = surv, x = time, group = key)) +
+  geom_line(aes(colour = key)) +
+  labs(y = 'Survival Function', x = 'Time', 
+       colour = "Covariables at") +
+  xlim(0, 15) +
   theme_bw()
