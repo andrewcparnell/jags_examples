@@ -9,7 +9,7 @@
 # Loading packages
 library(R2jags)
 library(tidyverse)
-library(patchwork)
+library(patchwork) # devtools::install_github("thomasp85/patchwork")
 
 # Description of the Bayesian Poisson model
 # Notation:
@@ -136,3 +136,68 @@ p32 <-  p3 +
   geom_line(data = df, aes(y = pred), colour = 'royalblue')
 
 p12 + p32 + plot_layout(nrow = 1)
+
+# Real example ------------------------------------------------------------
+# install_github(repo = "labestData", username = "pet-estatistica",
+#               ref = "master", build_vignettes = TRUE)
+
+df <- labestData::PaulaEx4.6.7
+
+# This data is related to pieces of fabric. The response variable
+# is the count of failures in each piece and the covariable is 
+# the length of the piece in meters
+
+
+# Jags code to fit the model to the real data
+model_code = '
+model
+{
+  # Likelihood
+  for (i in 1:T) {
+    y[i] ~ dpois(p[i])
+    log(p[i]) <- alpha + beta_1 * x_1[i]
+  }
+  # Priors
+  alpha ~ dnorm(0.0, 0.01)
+  beta_1 ~ dnorm(0.0, 0.01)
+  beta_2 ~ dnorm(0.0, 0.01)
+}
+'
+
+# Set up the data
+model_data = list(T = dim(df)[1], y = df$nfalhas, x_1 = df$comp)
+
+# Choose the parameters to watch
+model_parameters =  c("alpha", "beta_1")
+
+# Run the model
+real_data_run = jags(data = model_data,
+                 parameters.to.save = model_parameters,
+                 model.file = textConnection(model_code),
+                 n.chains = 4,
+                 n.iter = 1000,
+                 n.burnin = 200,
+                 n.thin = 2)
+
+# Check the output - are the true values inside the 95% CI?
+# Also look at the R-hat values - they need to be close to 1 if convergence has been achieved
+plot(real_data_run)
+print(real_data_run)
+traceplot(real_data_run)
+
+
+# Creating plots of the posterior regression line
+post = print(real_data_run)
+alpha_mean = post$mean$alpha
+beta_1_mean = post$mean$beta_1
+
+df <- df %>% 
+  mutate(pred = exp(alpha_mean + beta_1_mean * comp))
+
+
+df %>% 
+  ggplot(aes(comp, nfalhas)) +
+  geom_point(colour = 'orange') + 
+  geom_line(data = df, aes(y = pred), colour = 'royalblue') +
+  labs(title = 'Y versus the explanatory variable with predicted line') +
+  theme_bw()

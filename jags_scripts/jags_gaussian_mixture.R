@@ -117,8 +117,8 @@ N2 <- round(N * lambda_clust[2])
 
 df <- df %>%
   as.data.frame() %>% 
-  mutate(mixt = c(rnorm(n = N1, mean = mu_clust[1], sd = sigma),
-                  rnorm(n = N2, mean = mu_clust[2], sd = sigma)))
+  mutate(mixt = c(rnorm(n = N1, mean = mu_clust[1], sd = sqrt(sigma)),
+                  rnorm(n = N2, mean = mu_clust[2], sd = sqrt(sigma))))
 
 df %>% 
   ggplot(aes(y)) +
@@ -134,4 +134,91 @@ df %>%
            size = 7) +
   annotate("text", x = mu_clust[2], y = 0.21, label = expression(mu[2]),
            size = 7) + 
+  theme_bw()
+
+
+# Real example ------------------------------------------------------------
+df <- iris %>% 
+  select(Petal.Width)
+
+df %>% 
+  ggplot(aes(Petal.Width)) +
+  geom_density() +
+  theme_bw()
+
+
+N = dim(df)[1]
+clust = rep(NA, N)
+clust[which.min(df$Petal.Width)] = 1 # smallest value assigned to cluster 1
+clust[clust == quantile(df$Petal.Width, 1/3)] = 2
+clust[which.max(df$Petal.Width)] = 3 # highest value assigned to cluster 2 
+
+model_code = '
+model {
+  # Likelihood:
+  for(i in 1:N) {
+    y[i] ~ dnorm(mu[i] , 1/sigma_inv) 
+    mu[i] <- mu_clust[clust[i]]
+    clust[i] ~ dcat(lambda_clust[1:Nclust])
+  }
+  # Prior:
+  sigma_inv ~ dunif(1, 2)
+  mu_clust[1] ~ dnorm(0.2, 10)
+  mu_clust[2] ~ dnorm(1.6, 10)
+  mu_clust[3] ~ dnorm(2.2, 10)
+  
+  lambda_clust[1:Nclust] ~ ddirch(ones)
+}
+'
+
+
+# Set up the data
+model_data = list(Nclust = 3, y = df$Sepal.Length, N = N, ones = c(1, 1, 1), clust = clust)
+
+# Choose the parameters to watch
+model_parameters =  c("sigma_inv", "mu_clust", "lambda_clust")
+
+# Run the model
+real_data_run = jags(data = model_data,
+                     parameters.to.save = model_parameters,
+                     model.file = textConnection(model_code),
+                     n.chains = 4,
+                     n.iter = 1000,
+                     n.burnin = 200,
+                     n.thin = 2)
+
+
+# Check the output - are the true values inside the 95% CI?
+# Also look at the R-hat values - they need to be close to 1 if convergence has been achieved
+plot(real_data_run)
+print(real_data_run)
+traceplot(real_data_run)
+
+# Create a plot of the posterior desnsity line
+post = print(real_data_run)
+sigma = 1/post$mean$sigma_inv
+mu_clust = post$mean$mu_clust
+lambda_clust = post$mean$lambda_clust
+
+N1 <- round(N * lambda_clust[1])
+N2 <- round(N * lambda_clust[2])
+N3 <- round(N * lambda_clust[3])
+
+df <- df %>%
+  mutate(mixt = c(rnorm(n = N1, mean = mu_clust[1], sd = sqrt(sigma)),
+                  rnorm(n = N2, mean = mu_clust[2], sd = sqrt(sigma)), 
+                  rnorm(n = N3, mean = mu_clust[3], sd = sqrt(sigma))))
+
+df %>% 
+  ggplot(aes(Petal.Width)) +
+  geom_density(colour = 'orange', size = 1) +
+  geom_density(data = df %>% slice(1:N1), 
+               aes(mixt, y = ..density.. * lambda_clust[1]),
+               colour = 'royalblue', linetype = 'dotted', size = 1.1) +
+  geom_density(data = df %>% slice(N1+1:N2), 
+               aes(mixt, y = ..density.. * lambda_clust[2]),
+               colour = 'plum', linetype = 'dotted', size = 1.1) +
+  geom_density(data = df %>% slice(N2+1:N3), 
+               aes(mixt, y = ..density.. * lambda_clust[3]),
+               colour = 'green', linetype = 'dotted', size = 1.1) +
   theme_bw()

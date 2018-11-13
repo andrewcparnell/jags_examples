@@ -6,6 +6,7 @@
 # In this file we fit a Exponential model for survival analysis
 library(R2jags)
 library(tidyverse)
+library(patchwork) # devtools::install_github("thomasp85/patchwork")
 
 # Description of the Bayesian Poisson model
 # Notation:
@@ -26,10 +27,10 @@ library(tidyverse)
 # beta_2 ~ normal(0, 100)
 
 # Simulate data -----------------------------------------------------------
-
+set.seed(123)
 T = 1000
 x_1 <- rnorm(n = T, mean = 1, sd = 1)
-x_2 <- rnorm(n = T, mean = 1, sd = 1)
+x_2 <- sample(c(0:1), size = T, replace = TRUE)
 lambda_0 <- 0.3
 beta_1 <- 1.2
 beta_2 <- 1
@@ -77,28 +78,135 @@ traceplot(model_run)
 
 # Plotting the results -------------------
 pars <- model_run$BUGSoutput$summary[c(1, 2, 4)]
-surv_func <- function(i){
-  H <- pars[3] * exp(pars[1] * x_1[i] + pars[2] * x_2[i])
+
+x_1 <- sort(x_1)
+
+surv_func <- function(i, trt){
+  if(trt == 0){
+    H <- pars[3] * exp(pars[1] * x_1[i] + pars[2] * 0)
+  } else { H <- pars[3] * exp(pars[1] * x_1[i] + pars[2] * 1) }
   
   # Survival function 
   S <- exp(-t * H)
   return(S)
 }
 
-survs <- c(1, 50, 100, 250, 500, 1000) %>%
-  purrr::map(surv_func) %>% 
+survs_trt1 <- c(1, 50, 100, 250, 500, 1000) %>%
+  purrr::map(surv_func, trt = 0) %>% 
   purrr::map_dfc(enframe) %>% 
   select_if(str_detect(colnames(.), 'value')) %>% 
   set_names(paste0(
-    "x_1 = ", round(x_1[c(1, 50, 100, 250, 500, 1000)], 1), ",
-  x_2 = ", round(x_2[c(1, 50, 100, 250, 500, 1000)], 1))) %>% 
+    "x_1 = ", round(x_1[c(1, 50, 100, 250, 500, 1000)], 1))) %>% 
   tidyr::gather(value = 'surv') %>% 
   dplyr::mutate(time = rep(t, 6))
 
-survs %>% 
+survs_trt2 <- c(1, 50, 100, 250, 500, 1000) %>%
+  purrr::map(surv_func, trt = 1) %>% 
+  purrr::map_dfc(enframe) %>% 
+  select_if(str_detect(colnames(.), 'value')) %>% 
+  set_names(paste0(
+    "x_1 = ", round(x_1[c(1, 50, 100, 250, 500, 1000)], 1))) %>% 
+  tidyr::gather(value = 'surv') %>% 
+  dplyr::mutate(time = rep(t, 6))
+
+p1 <- survs_trt1 %>% 
   ggplot(aes(y = surv, x = time, group = key)) +
   geom_line(aes(colour = key)) +
   labs(y = 'Survival Function', x = 'Time', 
-       colour = "Covariables at") +
-  xlim(0, 15) +
+       colour = "Covariables at", 
+       title = "Treatment 1") +
+  xlim(0, 35) +
   theme_bw()
+
+p2 <- survs_trt2 %>% 
+  ggplot(aes(y = surv, x = time, group = key)) +
+  geom_line(aes(colour = key)) +
+  labs(y = 'Survival Function', x = 'Time', 
+       colour = "Covariables at", 
+       title = "Treatment 2") +
+  xlim(0, 35) +
+  theme_bw()
+
+p1 + p2 + plot_layout(ncol = 1)
+
+# Real example ------------------------------------------------------------
+
+df <- survival::veteran %>% 
+  select(time, age, trt)
+
+# The data is a randomised trial of two treatment regimens 
+# for lung cancer. We consider the covariables age and treatment. 
+
+
+# Set up the data
+model_data = list(T = T, t = df$time, x_1 = df$age, x_2 = df$trt)
+
+# Choose the parameters to watch
+model_parameters =  c("beta_1", "beta_2", "lambda_0")
+
+# Run the model
+model_run = jags(data = model_data,
+                 parameters.to.save = model_parameters,
+                 model.file = textConnection(model_code),
+                 n.chains = 4,
+                 n.iter = 1000,
+                 n.burnin = 200,
+                 n.thin = 2)
+
+# Check the output - are the true values inside the 95% CI?
+# Also look at the R-hat values - they need to be close to 1 if convergence has been achieved
+plot(model_run)
+print(model_run)
+traceplot(model_run)
+
+
+# Plotting the results -------------------
+pars <- model_run$BUGSoutput$summary[c(1, 2, 4)]
+surv_func <- function(i, trt){
+  if(trt == 1){ 
+    H <- pars[3] * exp(pars[1] * df$age[i] + pars[2] * 0)
+  } else { 
+    H <- pars[3] * exp(pars[1] * df$age[i] + pars[2] * 1)
+  }
+  # Survival function 
+  S <- exp(- df$time * H)
+  return(S)
+}
+
+
+survs_trt1 <- c(1, 10, 20, 50, 100, 137) %>%
+  purrr::map(surv_func, trt = 1) %>% 
+  purrr::map_dfc(enframe) %>% 
+  select_if(str_detect(colnames(.), 'value')) %>% 
+  set_names(paste0(
+    "Age = ", round(df$age[c(1, 10, 20, 50, 100, 137)], 1))) %>% 
+  tidyr::gather(value = 'surv') %>% 
+  dplyr::mutate(time = rep(df$time, 6))
+
+survs_trt2 <- c(1, 10, 20, 50, 100, 137) %>%
+  purrr::map(surv_func, trt = 2) %>% 
+  purrr::map_dfc(enframe) %>% 
+  select_if(str_detect(colnames(.), 'value')) %>% 
+  set_names(paste0(
+    "Age = ", round(df$age[c(1, 10, 20, 50, 100, 137)], 1))) %>% 
+  tidyr::gather(value = 'surv') %>% 
+  dplyr::mutate(time = rep(df$time, 6))
+
+p1 <- survs_trt1 %>% 
+  ggplot(aes(y = surv, x = time, group = key)) +
+  geom_line(aes(colour = key)) +
+  labs(y = 'Survival Function', x = 'Time', 
+       colour = "Covariables at", title = "Treatment 1") +
+  xlim(0, 200) +
+  theme_bw()
+
+
+p2 <- survs_trt2 %>% 
+  ggplot(aes(y = surv, x = time, group = key)) +
+  geom_line(aes(colour = key)) +
+  labs(y = 'Survival Function', x = 'Time', 
+       colour = "Covariables at", title = "Treatment 2") +
+  xlim(0, 200) +
+  theme_bw()
+
+p1 + p2 + plot_layout(ncol = 1)
