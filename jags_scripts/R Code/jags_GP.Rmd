@@ -1,0 +1,86 @@
+---
+title: "Gaussian Process (GP) Regression Modelling Using JAGS"
+author: "Ahmed Ali"
+header-includes:
+- \usepackage{amsmath}
+- \usepackage[ruled,longend]{algorithm2e}
+- \SetKw{KwBy}{by}
+output:
+  pdf_document
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, 
+                      warning = FALSE, fig.align = 'center',
+                      fig.width = 4.7, fig.height = 3.5, 
+                      cache = TRUE, results = FALSE)
+```
+
+## Apply to dataset using JAGS
+
+```{r}
+# Load in
+rm(list=ls())
+library(R2jags)
+library(MASS)
+library(datasets) # Package which consists of a variety of datasets
+head(cars) # We will be applying the model to a dataset 
+# of cars speed and distance recorded in the 1920s 
+```
+
+```{r}
+# Set up the data
+jags_data = with(cars,list(T = nrow(as.matrix(cars$speed))
+                           , y = as.matrix(cars$speed)
+                           ,t=sort(runif(50))))
+```
+
+```{r}
+# Setting up the jags model
+
+# Jags code to set up the model
+
+model_code = '
+model
+{
+  # Likelihood
+  y ~ dmnorm(Mu, Sigma.inv)
+  Sigma.inv <- inverse(Sigma)
+
+  # Set up mean and covariance matrix
+  for(i in 1:T) {
+    Mu[i] <- alpha
+    Sigma[i,i] <- pow(sigma, 2) + pow(tau, 2)
+
+    for(j in (i+1):T) {
+      Sigma[i,j] <- pow(tau, 2) * exp( - rho * pow(t[i] - t[j], 2) )
+      Sigma[j,i] <- Sigma[i,j]
+    }
+  }
+
+  alpha ~ dnorm(0, 0.01)
+  sigma ~ dunif(0, 10)
+  tau ~ dunif(0, 10)
+  rho ~ dunif(0.1, 5)
+
+}
+'
+
+# Choose the parameters to watch
+model_parameters =  c("alpha", "sigma", "tau", "rho")
+
+# Jags code to fit the model onto the dataset
+jags_model=jags(jags_data,
+                parameters.to.save = model_parameters
+                ,model.file = textConnection(model_code),
+                n.chains=4,
+                n.iter=1000,
+                n.burnin=200,
+                n.thin=2)
+```
+
+```{r}
+# Plot the jags output
+print(jags_model)
+```
+

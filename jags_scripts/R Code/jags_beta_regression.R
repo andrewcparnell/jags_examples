@@ -1,7 +1,7 @@
 # Header ------------------------------------------------------------------
 
 # Fitting a beta linear regression in JAGS
-# Andrew Parnell
+# Andrew Parnell and Ahmed Ali
 
 # In this code we generate some data from a beta linear regression model and fit is using jags. We then intepret the output.
 
@@ -104,3 +104,34 @@ legend('topleft',
        lty=1,
        col=c('blue','red'))
 # Blue and red lines should be pretty close
+
+# Real example ------------------------------------------------------------
+
+# Load in
+library(datasets)
+head(attenu)
+
+#Set up the data
+acc=with(attenu,list(y=attenu$accel
+                       ,x=attenu$dist
+                       ,T=nrow(attenu)))
+# Plot
+plot(attenu$dist,attenu$accel)
+
+# Set up jags model
+jags_model=jags(acc,
+                parameters.to.save = model_parameters
+                ,model.file = textConnection(model_code),
+                n.chains=4,
+                n.iter=1000,
+                n.burnin=200,
+                n.thin=2)
+# Plot the jags output
+print(jags_model)
+traceplot(jags_model)
+
+# Plot of posterior line
+post=print(jags_model)
+alpha_mean=post$mean$alpha
+beta_mean=post$mean$beta
+

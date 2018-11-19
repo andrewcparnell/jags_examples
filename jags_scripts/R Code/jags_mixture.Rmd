@@ -1,0 +1,85 @@
+---
+title: "Mixture Model Using JAGS In R"
+author: "Ahmed Ali"
+header-includes:
+- \usepackage{amsmath}
+- \usepackage[ruled,longend]{algorithm2e}
+- \SetKw{KwBy}{by}
+output:
+  pdf_document
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, 
+                      warning = FALSE, fig.align = 'center',
+                      fig.width = 4.7, fig.height = 3.5, 
+                      cache = TRUE, results = FALSE)
+```
+
+## Apply to dataset using JAGS
+
+```{r}
+# Load in
+rm(list=ls())
+library(R2jags)
+library(datasets) # Package which consists of a variety of datasets
+head(women) # We will be applying the model to a dataset 
+# of the average heights and weights of women aged 30-39 
+```
+
+```{r}
+# Set up the data
+jags_data=list(y=women[,c(1)]
+               ,N= dim(women)[1]
+               ,G=5)
+```
+
+```{r}
+# Setting up the jags model
+
+# Jags code to set up the model
+
+model_code = '
+model
+{
+  # Likelihood
+  for (i in 1:N) {
+    y[i] ~ dnorm(mu_g[Z[i]], sigma^-2)
+
+    Z[i] ~ dcat(pi[i, 1:G])
+
+    for (g in 1:G) {
+      exp_theta[i, g] <- exp(theta[i, g])
+      pi[i, g] <- exp(theta[i, g]) / sum(exp_theta[i, 1:G])
+      theta[i, g] ~ dnorm(0, 6^-2)
+    }
+  }
+
+  # Priors
+  sigma ~ dt(0, 10^-2, 1)T(0,)
+  for (g in 1:G) {
+    mu_g_raw[g] ~ dnorm(0, 100^-2)
+  }
+  # Make sure these are in order to avoid label switching
+  mu_g <- sort(mu_g_raw[1:G])
+
+}
+'
+
+# Choose the parameters to watch
+model_parameters =  c("mu_g", "sigma", "Z", "pi")
+
+# Jags code to fit the model onto the dataset
+jags_model=jags(jags_data,
+                parameters.to.save = model_parameters
+                ,model.file = textConnection(model_code),
+                n.chains=4,
+                n.iter=1000,
+                n.burnin=200,
+                n.thin=2)
+```
+
+```{r}
+# Plot the jags output
+print(jags_model)
+```

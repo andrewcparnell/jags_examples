@@ -1,7 +1,7 @@
 # Header ------------------------------------------------------------------
 
 # Gaussian process models in JAGS
-# Andrew Parnell
+# Andrew Parnell and Ahmed Ali
 
 # This file fits a Gaussian Process (GP) regression model to data in JAGS, and produces predictions/forecasts
 
@@ -58,32 +58,32 @@ model
   # Likelihood
   y ~ dmnorm(Mu, Sigma.inv)
   Sigma.inv <- inverse(Sigma)
-  
+
   # Set up mean and covariance matrix
   for(i in 1:T) {
     Mu[i] <- alpha
     Sigma[i,i] <- pow(sigma, 2) + pow(tau, 2)
-  
+
     for(j in (i+1):T) {
       Sigma[i,j] <- pow(tau, 2) * exp( - rho * pow(t[i] - t[j], 2) )
       Sigma[j,i] <- Sigma[i,j]
     }
   }
-  
+
   alpha ~ dnorm(0, 0.01)
   sigma ~ dunif(0, 10)
   tau ~ dunif(0, 10)
   rho ~ dunif(0.1, 5)
-  
-} 
+
+}
 '
-  
+
 # Set up the data
 model_data = list(T = T, y = y, t = t)
-  
+
 # Choose the parameters to watch
 model_parameters =  c("alpha", "sigma", "tau", "rho")
-  
+
 # Run the model - can be slow
 model_run = jags(data = model_data,
                    parameters.to.save = model_parameters,
@@ -92,7 +92,7 @@ model_run = jags(data = model_data,
                    n.iter=1000, # Number of iterations
                    n.burnin=200, # Number of iterations to remove at start
                    n.thin=2) # Amount of thinning
-  
+
 
 # Simulated results -------------------------------------------------------
 
@@ -102,8 +102,8 @@ print(model_run)
 # Now create some predictions of new values at new times t^new
 # These are bsed on the formula:
 # y^new | y ~ N( Mu^new + Sigma_new^T solve(Sigma, y - Mu), Sigma_* - Sigma_new^T solve(Sigma, Sigma_new)
-# where 
-# Mu^new[t] = alpha  
+# where
+# Mu^new[t] = alpha
 # Sigma_new[i,j] = tau^2 * exp( -rho * (t^new_i - t_j)^2 )
 # Sigma_*[i,j] = tau^2 * exp( -rho * (t^new_i - t^new_j)^2 ) if i != j
 
@@ -146,7 +146,28 @@ lines(t_new, pred_high, col = 'red', lty = 2)
 # Real example ------------------------------------------------------------
 
 # Data wrangling and jags code to run the model on a real data set in the data directory
+library(datasets)
+head(cars)
+jags_data = with(cars,list(T = nrow(as.matrix(cars$speed))
+                           , y = as.matrix(cars$speed)
+                           ,t=sort(runif(50))))
 
+# Run the model
+real_data_run = jags(jags_data,
+                     parameters.to.save = model_parameters,
+                     model.file = textConnection(model_code),
+                     n.chains = 4,
+                     n.iter = 1000,
+                     n.burnin = 200,
+                     n.thin = 2)
+
+# Plot the jags output
+print(real_data_run)
+
+# Plot of posterior line
+post=print(jags_model)
+alpha_mean=post$mean$alpha
+beta_mean=post$mean$beta
 
 # Other tasks -------------------------------------------------------------
 

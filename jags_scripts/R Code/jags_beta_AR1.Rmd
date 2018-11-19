@@ -1,0 +1,90 @@
+---
+title: "Bayesian Beta AR1 Modelling Using JAGS"
+author: "Ahmed Ali"
+header-includes:
+- \usepackage{amsmath}
+- \usepackage[ruled,longend]{algorithm2e}
+- \SetKw{KwBy}{by}
+output:
+  pdf_document
+---
+# The model with notation described
+We start by defining the likelihood of the model,
+$$ y_i\sim beta(a_t,b_t) $$
+The mean of the model,
+$$ \mu_t=\frac{a_t}{a_t+b_t} $$
+$$ logit(\mu_t)=\alpha + \beta \mu_{t-1} $$
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, 
+                      warning = FALSE, fig.align = 'center',
+                      fig.width = 4.7, fig.height = 3.5, 
+                      cache = TRUE, results = FALSE)
+```
+
+## Apply to dataset using JAGS
+
+```{r}
+# Load in
+library(R2jags)
+library(boot)
+library(datasets) # Package which consists of a variety of datasets
+head(attenu) # We will be applying the model to a dataset 
+# of peak acceleration measured at various observations 
+# for 33 earthquakes in California
+```
+
+```{r}
+# Set up the data
+acc=with(attenu,list(y=attenu$accel
+                       ,x=attenu$dist
+                       ,T=nrow(attenu)))
+```
+
+```{r}
+# Plot of Acceleration vs Distance
+plot(attenu$dist,attenu$accel,
+     main = "Acceleration vs Distance"
+     ,xlab="Distance",ylab="Accleration")
+
+```
+
+```{r}
+# Setting up the jags model
+
+# Jags code to set up the model
+
+model_code = '
+model
+{
+  # Likelihood
+  for (t in 1:T) {
+    y[t] ~ dbeta(a[t], b[t])
+    a[t] <- mu[t] * phi
+    b[t] <- (1 - mu[t]) * phi
+    logit(mu[t]) <- alpha + beta * x[t]
+  }
+
+  # Priors
+  alpha ~ dnorm(0, 10^-2)
+  beta ~ dnorm(0, 10^-2)
+  phi ~ dunif(0, 10)
+}
+'
+# Choose the parameters to watch
+model_parameters =  c("alpha","beta","phi")
+
+# Jags code to fit the model onto the dataset
+jags_model=jags(acc,
+                parameters.to.save = model_parameters
+                ,model.file = textConnection(model_code),
+                n.chains=4,
+                n.iter=1000,
+                n.burnin=200,
+                n.thin=2)
+```
+
+```{r}
+# Plot the jags output
+print(jags_model)
+```
+

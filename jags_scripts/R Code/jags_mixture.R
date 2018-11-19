@@ -1,7 +1,7 @@
 # Header ------------------------------------------------------------------
 
 # A 1D mixture model in JAGS with a fixed number of groups
-# Andrew Parnell
+# Andrew Parnell and Ahmed Ali
 
 # This model fits a mixture of normal distributions to the data given a fixed number of groups. It might be useful for clustering or other applications where standard probability distributions are not suitable
 # This model assumes the mixtures are on the means, but all standard deviations are equal
@@ -98,7 +98,31 @@ print(model_run)
 # Real example ------------------------------------------------------------
 
 # Data wrangling and jags code to run the model on a real data set in the data directory
+# Load in
+library(datasets)
+head(women)
 
+#Set up the data
+jags_data=list(y=women[,c(1)]
+               ,N= dim(women)[1]
+               ,G=5)
+
+# Plot
+plot(cars$dist,cars$speed)
+
+# Set up jags model
+jags_model=jags(jags_data,
+                parameters.to.save = model_parameters
+                ,model.file = textConnection(model_code),
+                n.chains=4,
+                n.iter=1000,
+                n.burnin=200,
+                n.thin=2)
+
+# Plot of posterior line
+post=print(jags_model)
+alpha_mean=post$mean$alpha
+beta_mean=post$mean$beta
 
 # Other tasks -------------------------------------------------------------
 
