@@ -1,7 +1,7 @@
 # Header ------------------------------------------------------------------
 
 # Fitting a beta AR1 in JAGS
-# Andrew Parnell
+# Andrew Parnell and Ahmed Ali
 
 # In this code we generate some data from a beta AR1 model and fit it using jags. We then intepret the output.
 
@@ -41,8 +41,8 @@ sigma_mu = 1
 set.seed(124)
 logit_mu = rep(NA, length = T)
 logit_mu[1] = alpha
-for(t in 2:T) logit_mu[t] = rnorm(1, 
-                                  alpha + beta * logit_mu[t-1], 
+for(t in 2:T) logit_mu[t] = rnorm(1,
+                                  alpha + beta * logit_mu[t-1],
                                   sigma_mu)
 mu = inv.logit(logit_mu)
 a = mu * phi
@@ -109,3 +109,35 @@ legend('topleft',
        lty=1,
        col=c('blue','red'))
 # Blue and red lines should be pretty close
+
+# Real example ------------------------------------------------------------
+
+# Data wrangling and jags code to run the model on a real data set in the data directory
+# Load in
+library(datasets)
+head(attenu)
+
+#Set up the data
+acc=with(attenu,list(y=attenu$accel
+                     ,T=nrow(attenu)))
+# Plot
+plot(attenu$dist,attenu$accel,
+     main = "Acceleration vs Distance"
+     ,xlab="Distance",ylab="Accleration")
+
+# Set up jags model
+jags_model=jags(acc,
+                parameters.to.save = model_parameters
+                ,model.file = textConnection(model_code),
+                n.chains=4,
+                n.iter=1000,
+                n.burnin=200,
+                n.thin=2)
+# Plot the jags output
+print(jags_model)
+
+# Plot of posterior line
+post=print(jags_model)
+alpha_mean=post$mean$alpha
+beta_mean=post$mean$beta
+mu_mean=post$mean$mu

@@ -1,7 +1,7 @@
 # Header ------------------------------------------------------------------
 
 # Fitting a hierarchical linear model in JAGS
-# Andrew Parnell
+# Andrew Parnell and Ahmed Ali
 
 # In this code we generate some data from a single level hierarchical model (equivalently a random effects model) and fit it using JAGS. We then interpret the output
 
@@ -100,3 +100,35 @@ points(1:M, alpha_mean + b_mean, col = 'blue', pch = 19)
 # Blue (true) and red (predicted) points should be pretty close
 
 # Real example ------------------------------------------------------------
+
+# Load in
+library(datasets)
+head(women)
+
+#Set up the data
+jags_data=list(y=women[,c(1)]
+,N= dim(women)[1]
+,M=ncol(women)
+,group = c(col(women)))
+
+
+# Plot
+plot(cars$dist,cars$speed)
+
+# Set up jags model
+jags_model=jags(jags_data,
+                parameters.to.save = model_parameters
+                ,model.file = textConnection(model_code),
+                n.chains=4,
+                n.iter=1000,
+                n.burnin=200,
+                n.thin=2)
+
+# Plot output
+print(jags_model)
+
+# Plot of posterior line (needs to be edited from here on)
+post = print(real_data_run)
+alpha_mean = post$mean$alpha[1]
+beta_mean = post$mean$beta[1]
+

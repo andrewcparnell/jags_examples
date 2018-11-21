@@ -1,0 +1,79 @@
+---
+title: "Hierarchical Random Effects Model Using JAGS In R"
+author: "Ahmed Ali"
+header-includes:
+- \usepackage{amsmath}
+- \usepackage[ruled,longend]{algorithm2e}
+- \SetKw{KwBy}{by}
+output:
+  pdf_document
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, 
+                      warning = FALSE, fig.align = 'center',
+                      fig.width = 4.7, fig.height = 3.5, 
+                      cache = TRUE, results = FALSE)
+```
+
+## Apply to dataset using JAGS
+
+```{r}
+# Load in
+rm(list=ls())
+library(R2jags)
+library(datasets) # Package which consists of a variety of datasets
+head(women) # We will be applying the model to a dataset 
+# of the average heights and weights of women aged 30-39 
+```
+
+```{r}
+# Set up the data
+jags_data=list(y=women[,c(1)]
+,N= dim(women)[1]
+,M=ncol(women)
+,group = c(col(women)))
+```
+
+```{r}
+# Setting up the jags model
+
+# Jags code to set up the model
+
+model_code = '
+model
+{
+  # Likelihood
+  for (i in 1:N) {
+    y[i] ~ dnorm(alpha + b[group[i]], sigma^-2)
+  }
+
+
+  # Priors
+  alpha ~ dnorm(0, 100^-2)
+  for (j in 1:M) {
+    b[j] ~ dnorm(0, sigma_b^-2)
+  }
+  sigma ~ dt(0, 10^-2, 1)T(0,)
+  sigma_b ~ dt(0, 10^-2, 1)T(0,)
+}
+'
+
+# Choose the parameters to watch
+model_parameters =  c("alpha", "b", "sigma", "sigma_b")
+
+# Jags code to fit the model onto the dataset
+jags_model=jags(jags_data,
+                parameters.to.save = model_parameters
+                ,model.file = textConnection(model_code),
+                n.chains=4,
+                n.iter=1000,
+                n.burnin=200,
+                n.thin=2)
+```
+
+```{r}
+# Plot the jags output
+print(jags_model)
+```
+
