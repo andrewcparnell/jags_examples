@@ -1,8 +1,12 @@
-# ---------------------------------------------------------------- #
-# Description: Metropolis-Hastings for Bayesian linear regression  #
-#                                                                  #
-# Author: Alan n. Inglis                                           #
-# ---------------------------------------------------------------- #
+
+# --------------------------------------------------------------- #
+# Description: Metropolis-Hastings for Bayesian linear regression #
+#              with a Laplace as prior for betas and an Uniform   #
+#              for sigma2                                         #
+# Author: Alan Inglis                                             #
+# Last modification: 18/12/2018                                   #
+# --------------------------------------------------------------- #
+
 library(MASS)
 library(ggplot2)
 library(gridExtra)
