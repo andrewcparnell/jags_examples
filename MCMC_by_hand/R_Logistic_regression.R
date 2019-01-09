@@ -1,8 +1,9 @@
-# ------------------------------------------------------------------  #
-# Description:  Metropolis-Hastings for Bayesian logistic regression  #
-#              with a Multivariate Normal as prior for betas.         #
-# Author: Alan Inglis                                                 #
-# ------------------------------------------------------------------  #
+# ------------------------------------------------------------------ #
+# Description: Metropolis-Hastings for Bayesian logistic regression  #
+#              with a Multivariate Normal as prior for betas.        #
+# Author: Alan Inglis                                                #
+# Last modification: 18/12/2018                                      #
+# ------------------------------------------------------------------ #
 
 library(MASS)
 library(ggplot2)
