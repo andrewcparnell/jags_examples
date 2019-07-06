@@ -108,9 +108,9 @@ str(pollen)
 # Set up the data
 
 model_data = list(N = nrow(pollen[1:500,]), y = pollen[1:500,3:9],
-                  x = scale(cbind(pollen[1:500,1:2],pollen[1:500,1:2]^2)),
+                  x = cbind(1, scale(cbind(pollen[1:500,1:2],pollen[1:500,1:2]^2))),
                   S = pollen[1:500,10],
-                  K = 4, # Number of covars
+                  K = 5, # Number of covars
                   M = 7) # Number of categories
 
 # Choose the parameters to watch
