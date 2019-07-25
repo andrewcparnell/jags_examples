@@ -2,7 +2,7 @@
 
 # A 1D mixture model in JAGS with a fixed number of groups
 # This version includes measurement error on the data points
-# Andrew Parnell
+# Andrew Parnell (with some help from Michael Fop at UCD)
 
 # This model fits a mixture of normal distributions to the data given a fixed number of groups. It might be useful for clustering or other applications where standard probability distributions are not suitable
 # This model assumes that the observations are observed with known noise, and that the mixtures are on the latent unobserved observations
