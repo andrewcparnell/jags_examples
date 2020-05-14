@@ -170,7 +170,7 @@ Mu_new = rep(post_means_2$alpha, N_new) # New GP mean
 # Note the extra terms in Sigma based on the extra variance needed
 Sigma_new = post_means_2$tau[1]^2 * exp( -post_means_2$rho[1] * outer(x, x_new, '-')^2 ) # Cross-covariance of new to old
 Sigma_star = post_means_2$sigma[1]^2 * diag(N_new) + post_means_2$tau[1]^2 * exp( - post_means_2$rho[1] * outer(x_new,x_new,'-')^2 )
-Sigma = diag(model_data$extra) + post_means_2$sigma[1]^2 * diag(N) + post_means_2$tau[1]^2 * exp( - post_means_2$rho[1] * outer(x,x,'-')^2 ) # Old variance matrix
+Sigma = diag(model_data$extra^2) + post_means_2$sigma[1]^2 * diag(N) + post_means_2$tau[1]^2 * exp( - post_means_2$rho[1] * outer(x,x,'-')^2 ) # Old variance matrix
 pred_mean = Mu_new + t(Sigma_new)%*%solve(Sigma, y - Mu) # Get predicted means
 pred_var = Sigma_star - t(Sigma_new)%*%solve(Sigma, Sigma_new) # Predicted variances
 
