@@ -1,6 +1,7 @@
 # Header ------------------------------------------------------------------
 
 # Multivariate Autoregressive models, commonly known as Vector AR (VAR) models
+# This one allows for missing values in different parts of the response
 # Andrew Parnell
 
 # The VAR model is a multivariate extension of the standard AR(p) model. In this code I just fit the VAR(1) model but it is easily extended to VAR(p)
