@@ -19,37 +19,44 @@ library(MASS) # Used to generate MVN samples
 # A = k-vector of constants
 # Phi = k by k matrix of AR coefficients - these are our most important parameters
 # e_t = k-vector of residuals
-# Sigma = k by k matrix of residual variance and co-variances
+# sigma_k^2 = residual standard deviation for dimension k
+# Note some of the k dimensions at each time t
 
 # Likelihood
-# y_t = A + Phi * y_{t-1} + e_t with e_t ~ MVN(0, Sigma)
+# y_t = A + Phi * y_{t-1} + e_t with e_t ~ MVN(0, sigma_k^2 I)
 # or
-# y_t ~ MVN(A + Phi * y_{t-1}, Sigma)
+# y_kt ~ N(A + Phi * y_{t-1}, sigma^2 I)
 
 # Prior
 # A[k] ~ normal(0, 100)
 # Phi[j,k] ~ normal(0, 100)
-# Sigma ~ Inverse Wishart(I, k+1)
+# sigma^2 ~ Inverse Gamma(1, 1)
 
 # Simulate data -----------------------------------------------------------
 
 # Some R code to simulate data from the above model
 T = 100
-k = 2
-Sigma = matrix(c(1, 0.2, 0.2, 1), 2, 2)
-Phi = matrix(c(0.6, 0.2, 0.2, 0.8), 2, 2)
-A = matrix(c(0, 2), 2, 1)
-y = matrix(NA, T, k)
-y[1,] = A
+K = 3
 set.seed(123)
+sigma = runif(K, 0.5, 1.5)
+#Phi = matrix(c(0.6, 0.2, 0.2, 0.8), 2, 2)
+Phi = runif(K, 0.1, 0.9) * diag(K)
+A = matrix(1:K, nrow = K, ncol = 1)
+y = matrix(NA, T, K)
+y[1,] = solve(diag(K) - Phi) %*% A # Long term average of process
 for(t in 2:T) {
-  y[t,] = mvrnorm(1, A + Phi %*% y[t-1,], Sigma)
+  y[t,] = mvrnorm(1, A + Phi %*% y[t-1,], sigma^2 * diag(K))
 }
 
+# Now add in missingness
+miss_prob = 0.2
+which_miss = matrix(rbinom(T*K, size = 1, prob = miss_prob),
+                    ncol = K, nrow = T)
+for(i in 1:K) y[which_miss[,i] == 1,i] = NA
+
 # Plot the output
-par(mfrow = c(2, 1))
-plot(1:T, y[,1], type = 'l')
-plot(1:T, y[,2], type = 'l')
+par(mfrow = c(K, 1))
+for(i in 1:K) plot(1:T, y[,i], type = 'l')
 par(mfrow = c(1, 1))
 
 # Jags code ---------------------------------------------------------------
@@ -59,44 +66,58 @@ model_code = '
 model
 {
   # Likelihood
-  for (t in 2:T) {
-    y[t, ] ~ dmnorm(mu[t, ], Sigma.Inv)
-    mu[t, 1:k] <- A + Phi %*% y[t-1,]
+  for(k in 1:K) {
+    y[1, k] ~ dnorm(mu[1, k], sigma[k]^-2)
+    mu[1,k] ~ dnorm(0, 100^-2)
+    for (t in 2:T) {
+      y[t, k] ~ dnorm(mu[t, k], sigma[k]^-2)
+      mu[t,k] <- A[k] + Phi[k,] %*% y[t-1,]
+    }
   }
-  Sigma.Inv ~ dwish(I, k+1)
-  Sigma <- inverse(Sigma.Inv)
 
   # Priors
-  for(i in 1:k) {
-    A[i] ~ dnorm(0, 0.01)
-    Phi[i,i] ~ dunif(-1, 1)
-    for(j in (i+1):k) {
-      Phi[i,j] ~ dunif(-1,1)
-      Phi[j,i] ~ dunif(-1,1)
+  for(k in 1:K) {
+    A[k] ~ dnorm(0, 100^-2)
+    sigma[k] ~ dunif(0, 100)
+    Phi[k,k] ~ dnorm(0, 1^-2)
+    for(j in (k+1):K) {
+      Phi[k,j] ~ dnorm(0, 1^-2)
+      Phi[j,k] ~ dnorm(0, 1^-2)
     }
   }
 }
 '
 
 # Set up the data
-model_data = list(T = T, k = k, y = y, I = diag(k))
+model_data = list(T = T, K = K, y = y)
 
 # Choose the parameters to watch
-model_parameters =  c("A", "Phi", "Sigma")
+model_parameters =  c("A", "Phi", "sigma", "mu")
 
 # Run the model
 model_run = jags(data = model_data,
                  parameters.to.save = model_parameters,
                  model.file=textConnection(model_code),
-                 n.chains=4, # Number of different starting positions
-                 n.iter=10000, # Number of iterations
-                 n.burnin=2000, # Number of iterations to remove at start
-                 n.thin=8) # Amount of thinning
+                 n.iter = 10000,
+                 n.burnin = 2000,
+                 n.thin = 8)
 
 # Simulated results -------------------------------------------------------
 
 # Results and output of the simulated example, to include convergence checking, output plots, interpretation etc
 print(model_run) # Results look pretty good
+plot(model_run)
+stop()
+
+# Have a look to see if it predicted the missing values well
+mu_mean = model_run$BUGSoutput$mean$mu
+# Plot the output
+par(mfrow = c(K, 1))
+for(i in 1:K) {
+  plot(1:T, y[,i], type = 'l')
+  lines(1:T, mu_mean[,i], col = 'blue') # Looks like it's predicted at a lag but ok
+}
+par(mfrow = c(1, 1))
 
 # Real example ------------------------------------------------------------
 
@@ -130,14 +151,12 @@ par(mfrow=c(1,1))
 real_data = with(bivariate_data,
                  list(T = nrow(bivariate_data)-1,
                       y = apply(bivariate_data[,c('Anomaly', 'sea_level_m')],2,'diff'),
-                      k = 2,
-                      I = diag(2)))
+                      K = 2))
 
 # Run the model
 real_data_run = jags(data = real_data,
                      parameters.to.save = model_parameters,
                      model.file=textConnection(model_code),
-                     n.chains=4,
                      n.iter=10000,
                      n.burnin=2000,
                      n.thin=8)
@@ -152,19 +171,17 @@ n_forecast = 10
 real_data_future = with(bivariate_data,
                  list(T = nrow(bivariate_data) + n_forecast - 1,
                       y = rbind(as.matrix(apply(bivariate_data[,c('Anomaly', 'sea_level_m')],2,'diff')), matrix(NA, ncol=2, nrow=n_forecast)),
-                      k = 2,
-                      I = diag(2)))
+                      K = 2))
 
 # Choose the parameters to watch
 model_parameters =  c("y")
 
 real_data_run_future = jags(data = real_data_future,
-                     parameters.to.save = model_parameters,
-                     model.file=textConnection(model_code),
-                     n.chains=4,
-                     n.iter=10000,
-                     n.burnin=2000,
-                     n.thin=8)
+                            parameters.to.save = model_parameters,
+                            model.file=textConnection(model_code),
+                            n.iter=10000,
+                            n.burnin=2000,
+                            n.thin=8)
 
 plot(real_data_run_future)
 
