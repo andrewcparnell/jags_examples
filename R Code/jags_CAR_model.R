@@ -7,7 +7,7 @@
 # Andrew Parnell
 
 # In this file I:
-# 1. Write out the maths for hte CAR model
+# 1. Write out the maths for the CAR model
 # 2. Simulate some data from it
 # 3. Show the JAGS code
 # 4. Fit the JAGS code to the simulated data
