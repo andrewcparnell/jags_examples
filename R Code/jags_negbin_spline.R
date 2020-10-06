@@ -10,7 +10,7 @@
 rm(list=ls())
 library(R2jags)
 library(MASS) # Useful for rnegbin function
-
+library(splines) # Useful for creating the B-spline basis functions
 # Maths -------------------------------------------------------------------
 
 # Notation:
@@ -48,6 +48,22 @@ bbase = function(x, xl = min(x), xr = max(x), nseg = 30, deg = 3){
   return(B)
 }
 
+# A function that uses the bs() function to generate the B-spline basis functions
+# following Eilers and Marx 'Craft of smoothing' course. This bs_bbase() function
+# is equivalent to the bbase() function available at http://statweb.lsu.edu/faculty/marx/
+
+bs_bbase = function(x, xl = min(x), xr = max(x), nseg = 10, deg = 3){
+  # Compute the length of the partitions
+  dx = (xr - xl) / nseg
+  # Create equally spaced knots
+  knots = seq(xl - deg * dx, xr + deg * dx, by = dx) 
+  # Use bs() function to generate the B-spline basis
+  get_bs_matrix = matrix(bs(x, knots = knots, degree = deg, Boundary.knots = c(knots[1], knots[length(knots)])), nrow = length(x))
+  # Remove columns that contain zero only
+  bs_matrix = get_bs_matrix[,-c(1:deg, ncol(get_bs_matrix):(ncol(get_bs_matrix) - deg))]
+  
+  return(bs_matrix)
+}
 
 # Simulate data -----------------------------------------------------------
 
@@ -55,7 +71,8 @@ bbase = function(x, xl = min(x), xr = max(x), nseg = 30, deg = 3){
 set.seed(123)
 N = 100 # Number of observations
 x = sort(runif(N, 0, 10)) # Create some covariate values
-B = bbase(x)
+# B = bbase(x)
+B = bs_bbase(x, nseg=30)
 sigma_b = 0.5 # Parameters as above
 theta = 10
 beta = cumsum(c(1, rnorm(ncol(B)-1, 0, sigma_b)))
@@ -103,6 +120,7 @@ model
 N_pred = 200
 x_pred = seq(min(x), max(x), length = N_pred)
 B_pred = bbase(x_pred, xl = min(x), xr = max(x))
+# B_pred = bs_bbase(x_pred, xl = min(x), xr = max(x), nseg=30)
 
 # Set up the data
 model_data = list(N = N, y = y, B = B, N_knots = ncol(B), B_pred = B_pred, N_pred = N_pred)
