@@ -160,5 +160,3 @@ legend('right', c('Posterior line on new grid (with 50% CI)',
 # Other tasks -------------------------------------------------------------
 
 # Perhaps exercises, or other general remarks
-
-
