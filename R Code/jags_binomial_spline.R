@@ -9,7 +9,7 @@
 rm(list=ls())
 library(R2jags)
 library(boot) # Logit functions
-
+library(splines) # Useful for creating the B-spline basis functions
 # Maths -------------------------------------------------------------------
 
 # Notation:
@@ -51,13 +51,31 @@ bbase = function(x, xl = min(x), xr = max(x), nseg = 30, deg = 3){
   return(B)
 }
 
+# A function that uses the bs() function to generate the B-spline basis functions
+# following Eilers and Marx 'Craft of smoothing' course. This bs_bbase() function
+# is equivalent to the bbase() function available at http://statweb.lsu.edu/faculty/marx/
+
+bs_bbase = function(x, xl = min(x), xr = max(x), nseg = 10, deg = 3){
+  # Compute the length of the partitions
+  dx = (xr - xl) / nseg
+  # Create equally spaced knots
+  knots = seq(xl - deg * dx, xr + deg * dx, by = dx)
+  # Use bs() function to generate the B-spline basis
+  get_bs_matrix = matrix(bs(x, knots = knots, degree = deg, Boundary.knots = c(knots[1], knots[length(knots)])), nrow = length(x))
+  # Remove columns that contain zero only
+  bs_matrix = get_bs_matrix[,-c(1:deg, ncol(get_bs_matrix):(ncol(get_bs_matrix) - deg))]
+  
+  return(bs_matrix)
+}
+
 # Simulate data -----------------------------------------------------------
 
 # Some R code to simulate data from the above model
 set.seed(100)
 T = 200 # Number of observations
 x = sort(runif(T, 0, 10)) # Create some covariate values
-B = bbase(x)
+# B = bbase(x)
+B = bs_bbase(x, nseg = 30)
 sigma_b = 1 # Parameters as above
 beta = cumsum(c(0, rnorm(ncol(B)-1, 0, sigma_b)))
 y = rbinom(T, 1, inv.logit(B%*%beta))
@@ -122,7 +140,8 @@ legend('topleft', c('True line',
 # Create some new predictions on a grid of new values
 # Needs to be in the same range as the previous values (if not you need to go back to the creation of B above)
 x_new = seq(min(x), max(x), length = 1000)
-B_new = bbase(x_new, xl = min(x), xr = max(x))
+# B_new = bbase(x_new, xl = min(x), xr = max(x))
+B_new = bs_bbase(x_new, xl = min(x), xr = max(x), nseg = 30)
 plot(x,y)
 lines(x_new, inv.logit(B_new%*%beta_quantile[2,]), col = 'blue') # Beautifully smooth
 lines(x_new, inv.logit(B_new%*%beta_quantile[1,]), col = 'blue', lty = 2) # Predicted low
