@@ -211,4 +211,3 @@ points(x[,1], x[,2], cex = y/max(y), pch = 19)
 
 # Perhaps exercises, or other general remarks
 
-
