@@ -10,7 +10,7 @@ rm(list=ls())
 library(R2jags)
 library(MASS) # Useful for mvrnorm function
 library(akima) # Useful for 2D interpolation
-
+library(splines) # Useful for creating the B-spline basis functions
 # Maths -------------------------------------------------------------------
 
 # Notation:
@@ -48,6 +48,23 @@ bbase = function(x, xl = min(x), xr = max(x), nseg = 10, deg = 3){
   return(B)
 }
 
+# A function that uses the bs() function to generate the B-spline basis functions
+# following Eilers and Marx 'Craft of smoothing' course. This bs_bbase() function
+# is equivalent to the bbase() function available at http://statweb.lsu.edu/faculty/marx/
+
+bs_bbase = function(x, xl = min(x), xr = max(x), nseg = 10, deg = 3){
+  # Compute the length of the partitions
+  dx = (xr - xl) / nseg
+  # Create equally spaced knots
+  knots = seq(xl - deg * dx, xr + deg * dx, by = dx) 
+  # Use bs() function to generate the B-spline basis
+  get_bs_matrix = matrix(bs(x, knots = knots, degree = deg, Boundary.knots = c(knots[1], knots[length(knots)])), nrow = length(x))
+  # Remove columns that contain zero only
+  bs_matrix = get_bs_matrix[,-c(1:deg, ncol(get_bs_matrix):(ncol(get_bs_matrix) - deg))]
+  
+  return(bs_matrix)
+}
+
 # Simulate data -----------------------------------------------------------
 
 # Some R code to simulate data from the above model
@@ -60,8 +77,13 @@ x2 = runif(N, 0, 10) # Create some 2D covariate values
 x = cbind(x1, x2)
 
 # Create two individual basis function matrices
-B1 = bbase(x[,1], xl = 0, xr = 10) # Put ranges on these with xl and xr for later ease of interpolation
-B2 = bbase(x[,2], xl = 0, xr = 10)
+# Using the function provided by Eilers and Marx 'Craft of smoothing' course
+# B1 = bbase(x[,1], xl = 0, xr = 10) # Put ranges on these with xl and xr for later ease of interpolation
+# B2 = bbase(x[,2], xl = 0, xr = 10)
+
+# Using an alternative function based on bs() that generates the same results as bbase()
+B1 = bs_bbase(x[,1], xl = 0, xr = 10) # Put ranges on these with xl and xr for later ease of interpolation
+B2 = bs_bbase(x[,2], xl = 0, xr = 10)
 
 # Create the matrix which is now going to be each column of B1 multiplied by each column of B2
 # There's perhaps a more elegant way of doing this
