@@ -65,7 +65,7 @@ model
     beta[j] ~ dnorm(0, 1)
   }
   alpha ~ dnorm(0, 100^-2)
-  sigma ~ dt(0, 10, 1)T(0,)
+  sigma ~ dt(0, 10^-2, 1)T(0,)
 }
 '
 
