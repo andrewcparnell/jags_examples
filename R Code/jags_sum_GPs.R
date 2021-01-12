@@ -19,7 +19,7 @@ library(MASS) # Useful for mvrnorm function
 # mu: Overall mean parameter
 # sigma_k: residual standard deviation parameter for GP k (sometimes known in the GP world as the nugget)
 # rho_k: decay parameter for the GP autocorrelation function for GP k
-# tau_k: GP standard deviation parameter for GP k
+# tau: GP standard deviation parameter for GP k - both fixed ot be the same
 
 # Likelihood:
 # y ~ N(mu + g_1 + g_2, sigma^2)
@@ -64,23 +64,22 @@ model
 
   # Set up mean and covariance matrix
   for(i in 1:N) {
-    Sigma_1[i,i] <- pow(tau_1, 2) + 0.001
-    Sigma_2[i,i] <- pow(tau_2, 2) + 0.001
+    Sigma_1[i,i] <- pow(tau, 2) + 0.001
+    Sigma_2[i,i] <- pow(tau, 2) + 0.001
 
     for(j in (i+1):N) {
-      Sigma_1[i,j] <- pow(tau_1, 2) * exp( - rho_1 * pow(x[i] - x[j], 2) )
+      Sigma_1[i,j] <- pow(tau, 2) * exp( - rho_1 * pow(x[i] - x[j], 2) )
       Sigma_1[j,i] <- Sigma_1[i,j]
-      Sigma_2[i,j] <- pow(tau_2, 2) * exp( - rho_2 * pow(x[i] - x[j], 2) )
+      Sigma_2[i,j] <- pow(tau, 2) * exp( - rho_2 * pow(x[i] - x[j], 2) )
       Sigma_2[j,i] <- Sigma_2[i,j]
     }
   }
 
   mu ~ dnorm(0, 100^-2)
   sigma ~ dunif(0, 10)
-  tau_1 ~ dunif(0, 10)
   rho_1 ~ dunif(0.1, 5)
-  tau_2 ~ dunif(0, 10)
   rho_2 ~ dunif(0.1, 5)
+  tau ~ dunif(0, 10)
 
 }
 '
@@ -89,13 +88,13 @@ model
 model_data = list(N = N, y = y, x = x, zeros = rep(0, N))
 
 # Choose the parameters to watch
-model_parameters =  c("mu", "sigma", "tau_1", "rho_1", "tau_2", "rho_2", "r_1", "r_2", "gp_1", "gp_2")
+model_parameters =  c("mu", "sigma", "tau", "rho_1", "rho_2", "r_1", "r_2", "gp_1", "gp_2")
 
 # Run the model - can be slow
 model_run = jags(data = model_data,
                    parameters.to.save = model_parameters,
                    model.file=textConnection(model_code),
-                   n.chains=1) # Number of different starting positions
+                   n.chains=1) # Number of different starting positions. Only need 1 here as it won't converge
 
 
 # Simulated results -------------------------------------------------------
@@ -117,8 +116,7 @@ lines(x, 2*y - model_run$BUGSoutput$mean$r_1 - model_run$BUGSoutput$mean$r_2 + m
 # I'm just going to use the mean values of the parameters
 mu = model_run$BUGSoutput$mean$mu[1]
 sigma = model_run$BUGSoutput$mean$sigma[1]
-tau_1 = model_run$BUGSoutput$mean$tau_1[1]
-tau_2 = model_run$BUGSoutput$mean$tau_2[1]
+tau = model_run$BUGSoutput$mean$tau[1]
 rho_1 = model_run$BUGSoutput$mean$rho_1[1]
 rho_2 = model_run$BUGSoutput$mean$rho_2[1]
 gp_1 = model_run$BUGSoutput$mean$gp_1
@@ -127,18 +125,18 @@ gp_2 = model_run$BUGSoutput$mean$gp_2
 # The GP predictions come from
 # gp_k_new | y ~ N( Sigma_k_new^T solve(Sigma, gp_k), Sigma_k_* - Sigma_k_new^T solve(Sigma_k, Sigma_k_new)
 # where
-# Sigma_k_new[i,j] = tau_k^2 * exp( -rho_j * (x_new_i - x_j)^2 )
-# Sigma_*[i,j] = tau_k^2 * exp( -rho_k * (x_new_i - x_new_j)^2 )
+# Sigma_k_new[i,j] = tau^2 * exp( -rho_j * (x_new_i - x_j)^2 )
+# Sigma_*[i,j] = tau^2 * exp( -rho_k * (x_new_i - x_new_j)^2 )
 
 # Now create predictions
 N_new = 100
 x_new = seq(0,1,length=N_new)
-Sigma_1_new = tau_1^2 * exp( -rho_1 * outer(x, x_new, '-')^2 )
-Sigma_2_new = tau_2^2 * exp( -rho_2 * outer(x, x_new, '-')^2 )
-Sigma_1_star = tau_1^2 * exp( - rho_1 * outer(x_new, x_new,'-')^2 )
-Sigma_2_star = tau_2^2 * exp( - rho_2 * outer(x_new, x_new,'-')^2 )
-Sigma_1 = tau_1^2 * exp( - rho_1 * outer(x, x, '-')^2 ) +  diag(0.001, N)
-Sigma_2 = tau_2^2 * exp( - rho_2 * outer(x, x, '-')^2 ) +  diag(0.001, N)
+Sigma_1_new = tau^2 * exp( -rho_1 * outer(x, x_new, '-')^2 )
+Sigma_2_new = tau^2 * exp( -rho_2 * outer(x, x_new, '-')^2 )
+Sigma_1_star = tau^2 * exp( - rho_1 * outer(x_new, x_new,'-')^2 )
+Sigma_2_star = tau^2 * exp( - rho_2 * outer(x_new, x_new,'-')^2 )
+Sigma_1 = tau^2 * exp( - rho_1 * outer(x, x, '-')^2 ) +  diag(0.001, N)
+Sigma_2 = tau^2 * exp( - rho_2 * outer(x, x, '-')^2 ) +  diag(0.001, N)
 
 # Use fancy equation to get predictions
 gp_1_new = t(Sigma_1_new)%*%solve(Sigma_1, gp_1)
