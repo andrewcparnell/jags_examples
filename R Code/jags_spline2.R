@@ -121,18 +121,27 @@ model_run <- jags(
 print(model_run)
 plot(model_run)
 
-# Get the posterior delta and 50% CI
+# Get the posterior delta and 50% prediction interval
 alpha_post <- model_run$BUGSoutput$sims.list$alpha
-alpha_quantile <- quantile(alpha_post, prob = c(0.25, 0.5, 0.75))
 delta_post <- model_run$BUGSoutput$sims.list$delta
-delta_quantile <- apply(delta_post, 2, quantile, prob = c(0.25, 0.5, 0.75))
+sigma_post <- model_run$BUGSoutput$sims.list$sigma
+
+# object to store prediction interval
+PI <- matrix(nrow = length(alpha_post),
+               ncol = N)
+for(i in 1:nrow(pred)) {
+  PI[i,] <- rnorm(N,
+                  mean = alpha_post[i] + Z%*%delta_post[i,],
+                  sd = sigma_post[i])
+}
+PI_quantile <- apply(PI, 2, quantile, prob = c(0.25,0.5,0.75))
 
 # Plot the output with uncertainty bands
 plot(x, y)
-lines(x, alpha_post + Z %*% delta, col = "red") # True line
-lines(x, alpha_post[2] + Z %*% delta_quantile[2, ], col = "blue") # Predicted line
-lines(x, alpha_post[1] + Z %*% delta_quantile[1, ], col = "blue", lty = 2) # Predicted low
-lines(x, alpha_post[3] + Z %*% delta_quantile[3, ], col = "blue", lty = 2) # Predicted high
+lines(x, alpha + Z %*% delta, col = "red") # True line
+lines(x, PI_quantile[2,], col = "blue") # Predicted line
+lines(x, PI_quantile[1,], col = "blue", lty = 2) # Predicted low
+lines(x, PI_quantile[3,], col = "blue", lty = 2) # Predicted high
 legend("topleft", c(
   "True line",
   "Posterior lines (with 50% CI)",
