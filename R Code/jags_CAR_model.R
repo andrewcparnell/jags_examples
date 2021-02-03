@@ -43,28 +43,28 @@ library(MASS) # To simulate from MVN
 # Simulate data -----------------------------------------------------------
 
 # Some R code to simulate data from the above model
-N = 40 # Locations
-p = 2
-X = matrix(runif(N*p), ncol = p, nrow = N)
-alpha = 0.8
-tau = 1
-beta = rnorm(p)
+N <- 40 # Locations
+p <- 2
+X <- matrix(runif(N * p), ncol = p, nrow = N)
+alpha <- 0.8
+tau <- 1
+beta <- rnorm(p)
 # Create random neighbours
 set.seed(124)
-W1 = matrix(rbinom(N*N, size = 1, prob = 0.6), nrow = N, ncol = N)
+W1 <- matrix(rbinom(N * N, size = 1, prob = 0.6), nrow = N, ncol = N)
 # Make is symmetric
-W = round(W1%*%t(W1)/max(W1%*%t(W1)))
-D = diag(rowSums(W))
-D_inv = diag(1/rowSums(W))
-I = diag(N)
-P = tau*D%*%(I - alpha * D_inv%*% W)
-phi = mvrnorm(1, rep(0, N), solve(P))
-y = rpois(N, exp(X%*%beta + phi))
+W <- round(W1 %*% t(W1) / max(W1 %*% t(W1)))
+D <- diag(rowSums(W))
+D_inv <- diag(1 / rowSums(W))
+I <- diag(N)
+P <- tau * D %*% (I - alpha * D_inv %*% W)
+phi <- mvrnorm(1, rep(0, N), solve(P))
+y <- rpois(N, exp(X %*% beta + phi))
 
 # Jags code ---------------------------------------------------------------
 
 # Jags code to fit the model to the simulated data
-model_code = '
+model_code <- "
 model
 {
   # Likelihood
@@ -81,24 +81,28 @@ model
   }
   tau ~ dt(0, 1, 1)T(0,)
 }
-'
+"
 
 # Set up the data
-model_data = list(N = N, y = y, X = X,
-                  zeros = rep(0, N),
-                  p = p,
-                  D_inv = D_inv,
-                  D = D,
-                  W = W,
-                  I = I)
+model_data <- list(
+  N = N, y = y, X = X,
+  zeros = rep(0, N),
+  p = p,
+  D_inv = D_inv,
+  D = D,
+  W = W,
+  I = I
+)
 
 # Choose the parameters to watch
-model_parameters =  c("alpha", "tau", "beta")
+model_parameters <- c("alpha", "tau", "beta")
 
 # Run the model
-model_run = jags(data = model_data,
-                 parameters.to.save = model_parameters,
-                 model.file = textConnection(model_code))
+model_run <- jags(
+  data = model_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code)
+)
 
 plot(model_run)
 
@@ -114,5 +118,3 @@ plot(model_run)
 # Other tasks -------------------------------------------------------------
 
 # Perhaps exercises, or other general remarks
-
-

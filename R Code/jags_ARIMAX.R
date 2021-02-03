@@ -11,7 +11,7 @@
 # Throughout this code I assume no differencing, so it is really an ARMAX model
 
 # Some boiler plate code to clear the workspace, and load in required packages
-rm(list=ls()) # Clear the workspace
+rm(list = ls()) # Clear the workspace
 library(R2jags)
 
 # Maths -------------------------------------------------------------------
@@ -43,35 +43,35 @@ library(R2jags)
 # Simulate data -----------------------------------------------------------
 
 # Some R code to simulate data from the above model
-p = 1 # Number of autoregressive terms
-d = 0 # Number of differences
-q = 1 # Numner of MA terms
-k = 2 # Number of explanatory variables
-T = 100
-sigma = 1
-alpha = 0
-beta = c(3,1)
+p <- 1 # Number of autoregressive terms
+d <- 0 # Number of differences
+q <- 1 # Numner of MA terms
+k <- 2 # Number of explanatory variables
+T <- 100
+sigma <- 1
+alpha <- 0
+beta <- c(3, 1)
 set.seed(123)
-theta = runif(q)
-phi = sort(runif(p),decreasing=TRUE)
-y = rep(NA,T)
-x = matrix(rnorm(T*k),ncol=k,nrow=T)
-y[1:q] = rnorm(q,0,sigma)
-eps = rep(NA,T)
-eps[1:q] = y[1:q] - alpha
-for(t in (q+1):T) {
-  ar_mean = sum( phi * y[(t-1):(t-p)] )
-  ma_mean = sum( theta * eps[(t-q):(t-1)] )
-  reg_mean = sum( x[t,]*beta )
-  y[t] = rnorm(1, mean = alpha + ar_mean + ma_mean + reg_mean, sd = sigma)
-  eps[t] = y[t] - alpha - ma_mean - ar_mean - reg_mean
+theta <- runif(q)
+phi <- sort(runif(p), decreasing = TRUE)
+y <- rep(NA, T)
+x <- matrix(rnorm(T * k), ncol = k, nrow = T)
+y[1:q] <- rnorm(q, 0, sigma)
+eps <- rep(NA, T)
+eps[1:q] <- y[1:q] - alpha
+for (t in (q + 1):T) {
+  ar_mean <- sum(phi * y[(t - 1):(t - p)])
+  ma_mean <- sum(theta * eps[(t - q):(t - 1)])
+  reg_mean <- sum(x[t, ] * beta)
+  y[t] <- rnorm(1, mean = alpha + ar_mean + ma_mean + reg_mean, sd = sigma)
+  eps[t] <- y[t] - alpha - ma_mean - ar_mean - reg_mean
 }
-plot(1:T,y,type='l')
+plot(1:T, y, type = "l")
 
 # Jags code ---------------------------------------------------------------
 
 # Jags code to fit the model to the simulated data
-model_code = '
+model_code <- "
 model
 {
   # Set up residuals
@@ -101,22 +101,24 @@ model
   tau <- 1/pow(sigma,2) # Turn precision into standard deviation
   sigma ~ dunif(0.0,10.0)
 }
-'
+"
 
 # Set up the data
-model_data = list(T = T, z = y, x=x, q = 1, p = 1, k=2)
+model_data <- list(T = T, z = y, x = x, q = 1, p = 1, k = 2)
 
 # Choose the parameters to watch
-model_parameters =  c("alpha","theta","phi","beta","sigma")
+model_parameters <- c("alpha", "theta", "phi", "beta", "sigma")
 
 # Run the model
-model_run = jags(data = model_data,
-                 parameters.to.save = model_parameters,
-                 model.file=textConnection(model_code),
-                 n.chains=4, # Number of different starting positions
-                 n.iter=1000, # Number of iterations
-                 n.burnin=200, # Number of iterations to remove at start
-                 n.thin=2) # Amount of thinning
+model_run <- jags(
+  data = model_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code),
+  n.chains = 4, # Number of different starting positions
+  n.iter = 1000, # Number of iterations
+  n.burnin = 200, # Number of iterations to remove at start
+  n.thin = 2
+) # Amount of thinning
 
 
 # Simulated results -------------------------------------------------------
@@ -128,85 +130,98 @@ print(model_run)
 # Real example ------------------------------------------------------------
 
 # Data wrangling and jags code to run the model on a real data set in the data directory
-hadcrut = read.csv('https://raw.githubusercontent.com/andrewcparnell/tsme_course/master/data/hadcrut.csv')
+hadcrut <- read.csv("https://raw.githubusercontent.com/andrewcparnell/tsme_course/master/data/hadcrut.csv")
 head(hadcrut)
-with(hadcrut,plot(Year,Anomaly,type='l'))
+with(hadcrut, plot(Year, Anomaly, type = "l"))
 
 # Look at the ACF/PACF
 acf(hadcrut$Anomaly)
 pacf(hadcrut$Anomaly)
 
 # Set up the data
-real_data = with(hadcrut,
-                 list(T = nrow(hadcrut),
-                      z = Anomaly,
-                      x = matrix(Year,ncol=1),
-                      q = 1,
-                      p = 1,
-                      k = 1))
+real_data <- with(
+  hadcrut,
+  list(
+    T = nrow(hadcrut),
+    z = Anomaly,
+    x = matrix(Year, ncol = 1),
+    q = 1,
+    p = 1,
+    k = 1
+  )
+)
 
 # This needs a longer run to get decent convergence
-real_data_run = jags(data = real_data,
-                     parameters.to.save = model_parameters,
-                     model.file=textConnection(model_code),
-                     n.chains=4,
-                     n.iter=10000,
-                     n.burnin=2000,
-                     n.thin=8)
+real_data_run <- jags(
+  data = real_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code),
+  n.chains = 4,
+  n.iter = 10000,
+  n.burnin = 2000,
+  n.thin = 8
+)
 
 # Plot output
 print(real_data_run) # beta small and convergence not as good
 
-traceplot(real_data_run, mfrow=c(1,2), varname = 'beta', ask = FALSE)
-hist(real_data_run$BUGSoutput$sims.list$beta, breaks=30)
-par(mfrow=c(1,1))
+traceplot(real_data_run, mfrow = c(1, 2), varname = "beta", ask = FALSE)
+hist(real_data_run$BUGSoutput$sims.list$beta, breaks = 30)
+par(mfrow = c(1, 1))
 
 # Create some predictions off into the future
 # Using the trick first covered in the jags_ARIMA function
-T_future = 20 # Number of future data points
-year_future = (max(hadcrut$Year)+1):(max(hadcrut$Year)+T_future)
+T_future <- 20 # Number of future data points
+year_future <- (max(hadcrut$Year) + 1):(max(hadcrut$Year) + T_future)
 
-real_data_future = with(hadcrut,
-                        list(T = nrow(hadcrut) + T_future,
-                             z = c(Anomaly, rep(NA,T_future)),
-                             x = matrix(c(Year,year_future),ncol=1),
-                             q = 1,
-                             p = 1,
-                             k = 1))
+real_data_future <- with(
+  hadcrut,
+  list(
+    T = nrow(hadcrut) + T_future,
+    z = c(Anomaly, rep(NA, T_future)),
+    x = matrix(c(Year, year_future), ncol = 1),
+    q = 1,
+    p = 1,
+    k = 1
+  )
+)
 
 # Just watch y now
-model_parameters =  c("z")
+model_parameters <- c("z")
 
 # Run the model
-real_data_run_future = jags(data = real_data_future,
-                            parameters.to.save = model_parameters,
-                            model.file=textConnection(model_code),
-                            n.chains=4,
-                            n.iter=10000,
-                            n.burnin=2000,
-                            n.thin=8)
+real_data_run_future <- jags(
+  data = real_data_future,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code),
+  n.chains = 4,
+  n.iter = 10000,
+  n.burnin = 2000,
+  n.thin = 8
+)
 
 # Print out the above
 print(real_data_run_future)
 
 # Get the future values
-y_all = real_data_run_future$BUGSoutput$sims.list$z
+y_all <- real_data_run_future$BUGSoutput$sims.list$z
 # If you look at the above object you'll see that the first columns are all identical because they're the data
-y_all_mean = apply(y_all,2,'mean')
+y_all_mean <- apply(y_all, 2, "mean")
 # Also create the upper/lower 95% CI values
-y_all_low = apply(y_all,2,'quantile',0.025)
-y_all_high = apply(y_all,2,'quantile',0.975)
-year_all = c(hadcrut$Year,year_future)
+y_all_low <- apply(y_all, 2, "quantile", 0.025)
+y_all_high <- apply(y_all, 2, "quantile", 0.975)
+year_all <- c(hadcrut$Year, year_future)
 
 # Plot these all together
 plot(year_all,
-     y_all_mean,
-     type='n',
-     ylim=range(c(hadcrut$Anomaly,y_all_low,y_all_high)))
-lines(year_all,y_all_mean,col='red')
-lines(year_all,y_all_low,col='red',lty='dotted')
-lines(year_all,y_all_high,col='red',lty='dotted')
-with(hadcrut,lines(Year,Anomaly))
+  y_all_mean,
+  type = "n",
+  ylim = range(c(hadcrut$Anomaly, y_all_low, y_all_high))
+)
+lines(year_all, y_all_mean, col = "red")
+lines(year_all, y_all_low, col = "red", lty = "dotted")
+lines(year_all, y_all_high, col = "red", lty = "dotted")
+with(hadcrut, lines(Year, Anomaly))
 
 # Other tasks -------------------------------------------------------------
 

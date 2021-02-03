@@ -6,7 +6,7 @@
 # This file fits a Gaussian Process (GP) regression model to data in JAGS, and produces predictions/forecasts
 
 # Some boiler plate code to clear the workspace and load in required packages
-rm(list=ls())
+rm(list = ls())
 library(R2jags)
 library(MASS) # Useful for mvrnorm function
 
@@ -38,21 +38,21 @@ library(MASS) # Useful for mvrnorm function
 # Simulate data -----------------------------------------------------------
 
 # Some R code to simulate data from the above model
-T = 20 # can take to T = 100 but fitting gets really slow ...
-alpha = 0
-sigma = 0.01
-tau = 1
-rho = 1
+T <- 20 # can take to T = 100 but fitting gets really slow ...
+alpha <- 0
+sigma <- 0.01
+tau <- 1
+rho <- 1
 set.seed(123)
-t = sort(runif(T))
-Sigma = sigma^2 * diag(T) + tau^2 * exp( - rho * outer(t,t,'-')^2 )
-y = mvrnorm(1,rep(alpha,T), Sigma)
-plot(t,y)
+t <- sort(runif(T))
+Sigma <- sigma^2 * diag(T) + tau^2 * exp(-rho * outer(t, t, "-")^2)
+y <- mvrnorm(1, rep(alpha, T), Sigma)
+plot(t, y)
 
 # Jags code ---------------------------------------------------------------
 
 # Jags code to fit the model to the simulated data
-model_code = '
+model_code <- "
 model
 {
   # Likelihood
@@ -76,22 +76,24 @@ model
   rho ~ dunif(0.1, 5)
 
 }
-'
+"
 
 # Set up the data
-model_data = list(T = T, y = y, t = t)
+model_data <- list(T = T, y = y, t = t)
 
 # Choose the parameters to watch
-model_parameters =  c("alpha", "sigma", "tau", "rho")
+model_parameters <- c("alpha", "sigma", "tau", "rho")
 
 # Run the model - can be slow
-model_run = jags(data = model_data,
-                   parameters.to.save = model_parameters,
-                   model.file=textConnection(model_code),
-                   n.chains=4, # Number of different starting positions
-                   n.iter=1000, # Number of iterations
-                   n.burnin=200, # Number of iterations to remove at start
-                   n.thin=2) # Amount of thinning
+model_run <- jags(
+  data = model_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code),
+  n.chains = 4, # Number of different starting positions
+  n.iter = 1000, # Number of iterations
+  n.burnin = 200, # Number of iterations to remove at start
+  n.thin = 2
+) # Amount of thinning
 
 
 # Simulated results -------------------------------------------------------
@@ -108,39 +110,39 @@ print(model_run)
 # Sigma_*[i,j] = tau^2 * exp( -rho * (t^new_i - t^new_j)^2 ) if i != j
 
 # First look at parameters
-alpha = model_run$BUGSoutput$sims.list$alpha
-tau = model_run$BUGSoutput$sims.list$tau
-sigma = model_run$BUGSoutput$sims.list$sigma
-rho = model_run$BUGSoutput$sims.list$rho
-par(mfrow = c(2,2))
-hist(alpha, breaks=30)
-hist(tau, breaks=30)
-hist(sigma, breaks=30)
-hist(rho, breaks=30)
-par(mfrow=c(1,1))
+alpha <- model_run$BUGSoutput$sims.list$alpha
+tau <- model_run$BUGSoutput$sims.list$tau
+sigma <- model_run$BUGSoutput$sims.list$sigma
+rho <- model_run$BUGSoutput$sims.list$rho
+par(mfrow = c(2, 2))
+hist(alpha, breaks = 30)
+hist(tau, breaks = 30)
+hist(sigma, breaks = 30)
+hist(rho, breaks = 30)
+par(mfrow = c(1, 1))
 
 # Now create predictions
-T_new = 20
-t_new = seq(0,1,length=T_new)
-Mu = rep(mean(alpha), T)
-Mu_new = rep(mean(alpha), T_new)
-Sigma_new = mean(tau)^2 * exp( -mean(rho) * outer(t, t_new, '-')^2 )
-Sigma_star = mean(sigma)^2 * diag(T_new) + mean(tau)^2 * exp( - mean(rho) * outer(t_new,t_new,'-')^2 )
-Sigma = mean(sigma)^2 * diag(T) + mean(tau)^2 * exp( - mean(rho) * outer(t,t,'-')^2 )
+T_new <- 20
+t_new <- seq(0, 1, length = T_new)
+Mu <- rep(mean(alpha), T)
+Mu_new <- rep(mean(alpha), T_new)
+Sigma_new <- mean(tau)^2 * exp(-mean(rho) * outer(t, t_new, "-")^2)
+Sigma_star <- mean(sigma)^2 * diag(T_new) + mean(tau)^2 * exp(-mean(rho) * outer(t_new, t_new, "-")^2)
+Sigma <- mean(sigma)^2 * diag(T) + mean(tau)^2 * exp(-mean(rho) * outer(t, t, "-")^2)
 
 # Use fancy equation to get predictions
-pred_mean = Mu_new + t(Sigma_new)%*%solve(Sigma, y - Mu)
-pred_var = Sigma_star - t(Sigma_new)%*%solve(Sigma, Sigma_new)
+pred_mean <- Mu_new + t(Sigma_new) %*% solve(Sigma, y - Mu)
+pred_var <- Sigma_star - t(Sigma_new) %*% solve(Sigma, Sigma_new)
 
 # Plot output
-plot(t,y)
-points(t_new, pred_mean, col='red')
-lines(t_new, pred_mean, col='red')
+plot(t, y)
+points(t_new, pred_mean, col = "red")
+lines(t_new, pred_mean, col = "red")
 
-pred_low = pred_mean - 1.95 * sqrt(diag(pred_var))
-pred_high = pred_mean + 1.95 * sqrt(diag(pred_var))
-lines(t_new, pred_low, col = 'red', lty = 2)
-lines(t_new, pred_high, col = 'red', lty = 2)
+pred_low <- pred_mean - 1.95 * sqrt(diag(pred_var))
+pred_high <- pred_mean + 1.95 * sqrt(diag(pred_var))
+lines(t_new, pred_low, col = "red", lty = 2)
+lines(t_new, pred_high, col = "red", lty = 2)
 
 
 # Real example ------------------------------------------------------------
@@ -148,29 +150,30 @@ lines(t_new, pred_high, col = 'red', lty = 2)
 # Data wrangling and jags code to run the model on a real data set in the data directory
 library(datasets)
 head(cars)
-jags_data = with(cars,list(T = nrow(as.matrix(cars$speed))
-                           , y = as.matrix(cars$speed)
-                           ,t=sort(runif(50))))
+jags_data <- with(cars, list(
+  T = nrow(as.matrix(cars$speed)),
+  y = as.matrix(cars$speed),
+  t = sort(runif(50))
+))
 
 # Run the model
-real_data_run = jags(jags_data,
-                     parameters.to.save = model_parameters,
-                     model.file = textConnection(model_code),
-                     n.chains = 4,
-                     n.iter = 1000,
-                     n.burnin = 200,
-                     n.thin = 2)
+real_data_run <- jags(jags_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code),
+  n.chains = 4,
+  n.iter = 1000,
+  n.burnin = 200,
+  n.thin = 2
+)
 
 # Plot the jags output
 print(real_data_run)
 
 # Plot of posterior line
-post=print(jags_model)
-alpha_mean=post$mean$alpha
-beta_mean=post$mean$beta
+post <- print(jags_model)
+alpha_mean <- post$mean$alpha
+beta_mean <- post$mean$beta
 
 # Other tasks -------------------------------------------------------------
 
 # Perhaps exercises, or other general remarks
-
-

@@ -6,7 +6,7 @@
 # This model creates a periodogram of the data and applies to the Lynx data set example
 
 # Some boiler plate code to clear the workspace, and load in required packages
-rm(list=ls()) # Clear the workspace
+rm(list = ls()) # Clear the workspace
 library(R2jags)
 
 # Maths -------------------------------------------------------------------
@@ -40,22 +40,22 @@ library(R2jags)
 # Simulate data -----------------------------------------------------------
 
 # Some R code to simulate data from the above model
-T = 100
-K = 20
-sigma = 1
-alpha = 0
+T <- 100
+K <- 20
+sigma <- 1
+alpha <- 0
 set.seed(123)
-f = seq(0.1,0.4,length=K) # Note 1/f should be the distance between peaks
-beta = gamma = rep(0,K)
+f <- seq(0.1, 0.4, length = K) # Note 1/f should be the distance between peaks
+beta <- gamma <- rep(0, K)
 # Pick one frequency and see if the model can find it
-choose = 4
-beta[choose] = 2
-gamma[choose] = 2
-X = outer(2 * pi * 1:T, f, '*') # This creates a clever matrix of 2 * pi * t * f_k for every combination of t and f_k
-mu = alpha + cos(X) %*% beta + sin(X) %*% gamma
-y = rnorm(T, mu, sigma)
-plot(1:T, y, type='l')
-lines(1:T, mu, col='red')
+choose <- 4
+beta[choose] <- 2
+gamma[choose] <- 2
+X <- outer(2 * pi * 1:T, f, "*") # This creates a clever matrix of 2 * pi * t * f_k for every combination of t and f_k
+mu <- alpha + cos(X) %*% beta + sin(X) %*% gamma
+y <- rnorm(T, mu, sigma)
+plot(1:T, y, type = "l")
+lines(1:T, mu, col = "red")
 
 # Look at the acf/pacf
 acf(y)
@@ -64,7 +64,7 @@ pacf(y)
 # Jags code ---------------------------------------------------------------
 
 # Jags code to fit the model to the simulated data
-model_code = '
+model_code <- "
 model
 {
   # Likelihood
@@ -82,25 +82,27 @@ model
   tau <- 1/pow(sigma,2) # Turn precision into standard deviation
   sigma ~ dunif(0.0,100.0)
 }
-'
+"
 
 # Set up the data - run this repeatedly:
-model_parameters =  c("P")
-Power = rep(NA,K)
+model_parameters <- c("P")
+Power <- rep(NA, K)
 
 # A loop, but should be very fast
 for (k in 1:K) {
-  curr_model_data = list(y = y, T = T, f_k = f[k], pi = pi)
+  curr_model_data <- list(y = y, T = T, f_k = f[k], pi = pi)
 
-  model_run = jags(data = curr_model_data,
-                   parameters.to.save = model_parameters,
-                   model.file=textConnection(model_code),
-                   n.chains=4, # Number of different starting positions
-                   n.iter=1000, # Number of iterations
-                   n.burnin=200, # Number of iterations to remove at start
-                   n.thin=2) # Amount of thinning
+  model_run <- jags(
+    data = curr_model_data,
+    parameters.to.save = model_parameters,
+    model.file = textConnection(model_code),
+    n.chains = 4, # Number of different starting positions
+    n.iter = 1000, # Number of iterations
+    n.burnin = 200, # Number of iterations to remove at start
+    n.thin = 2
+  ) # Amount of thinning
 
-  Power[k] = mean(model_run$BUGSoutput$sims.list$P)
+  Power[k] <- mean(model_run$BUGSoutput$sims.list$P)
 }
 
 # Simulated results -------------------------------------------------------
@@ -108,48 +110,52 @@ for (k in 1:K) {
 # Results and output of the simulated example, to include convergence checking, output plots, interpretation etc
 
 # Plot the posterior periodogram next to the time series
-par(mfrow=c(2,1))
-plot(1:T, y, type='l')
-plot(f,Power,type='l')
-abline(v=f[choose],col='red')
-par(mfrow=c(1,1))
+par(mfrow = c(2, 1))
+plot(1:T, y, type = "l")
+plot(f, Power, type = "l")
+abline(v = f[choose], col = "red")
+par(mfrow = c(1, 1))
 
 # Real example ------------------------------------------------------------
 
 # Use the lynx data
 library(rdatamarket)
-lynx = as.ts(dmseries('http://data.is/Ky69xY'))
+lynx <- as.ts(dmseries("http://data.is/Ky69xY"))
 plot(lynx)
 
 # Create some possible periodicities
-periods = 5:40
-K = length(periods)
-f = 1/periods
+periods <- 5:40
+K <- length(periods)
+f <- 1 / periods
 
 # Run as before
 for (k in 1:K) {
-  curr_model_data = list(y = as.vector(lynx[,1]),
-                         T = length(lynx),
-                         f_k = f[k],
-                         pi = pi)
+  curr_model_data <- list(
+    y = as.vector(lynx[, 1]),
+    T = length(lynx),
+    f_k = f[k],
+    pi = pi
+  )
 
-  model_run = jags(data = curr_model_data,
-                   parameters.to.save = model_parameters,
-                   model.file=textConnection(model_code),
-                   n.chains=4, # Number of different starting positions
-                   n.iter=1000, # Number of iterations
-                   n.burnin=200, # Number of iterations to remove at start
-                   n.thin=2) # Amount of thinning
+  model_run <- jags(
+    data = curr_model_data,
+    parameters.to.save = model_parameters,
+    model.file = textConnection(model_code),
+    n.chains = 4, # Number of different starting positions
+    n.iter = 1000, # Number of iterations
+    n.burnin = 200, # Number of iterations to remove at start
+    n.thin = 2
+  ) # Amount of thinning
 
-  Power[k] = mean(model_run$BUGSoutput$sims.list$P)
+  Power[k] <- mean(model_run$BUGSoutput$sims.list$P)
 }
 
 par(mfrow = c(2, 1))
 plot(lynx)
-plot(f, Power, type='l')
+plot(f, Power, type = "l")
 # Make this more useful by adding in a second axis showing periods
 axis(side = 3, at = f, labels = periods)
-par(mfrow=c(1, 1))
+par(mfrow = c(1, 1))
 # Numbers seem to increase about every 10 years
 
 # Other tasks -------------------------------------------------------------

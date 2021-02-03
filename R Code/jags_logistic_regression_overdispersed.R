@@ -7,7 +7,7 @@
 # of an over-dispersed logistic regression.
 
 # Some boiler plate code to clear the workspace, and load in required packages
-rm(list=ls()) # Clear the workspace
+rm(list = ls()) # Clear the workspace
 library(R2jags)
 library(boot) # Package contains the logit transform
 
@@ -39,27 +39,27 @@ library(boot) # Package contains the logit transform
 # Simulate data -----------------------------------------------------------
 
 # Some R code to simulate data from the above model
-T = 100
-K = 20
+T <- 100
+K <- 20
 set.seed(123)
-x_1 = sort(runif(T,0,10))
-x_2 = sort(runif(T,0,10))
-alpha = 1
-beta_1 = 0.2
-beta_2 = -0.5
-sigma = 1
-logit_p = rnorm(T, alpha + beta_1 * x_1 + beta_2 * x_2, sigma)
-p = inv.logit(logit_p)
-y = rbinom(T,K,p)
+x_1 <- sort(runif(T, 0, 10))
+x_2 <- sort(runif(T, 0, 10))
+alpha <- 1
+beta_1 <- 0.2
+beta_2 <- -0.5
+sigma <- 1
+logit_p <- rnorm(T, alpha + beta_1 * x_1 + beta_2 * x_2, sigma)
+p <- inv.logit(logit_p)
+y <- rbinom(T, K, p)
 
 # Have a quick look at the effect of x_1 and x_2 on y
-plot(x_1,y)
-plot(x_2,y)
+plot(x_1, y)
+plot(x_2, y)
 
 # Jags code ---------------------------------------------------------------
 
 # Jags code to fit the model to the simulated data
-model_code = '
+model_code <- "
 model
 {
   # Likelihood
@@ -75,18 +75,20 @@ model
   beta_2 ~ dnorm(0,1^-2)
   sigma ~ dt(0, 1^-2, 1)T(0,)
 }
-'
+"
 
 # Set up the data
-model_data = list(T = T, y = y, x_1 = x_1, x_2 = x_2, K = 20)
+model_data <- list(T = T, y = y, x_1 = x_1, x_2 = x_2, K = 20)
 
 # Choose the parameters to watch
-model_parameters =  c("alpha", "beta_1", "beta_2", "sigma")
+model_parameters <- c("alpha", "beta_1", "beta_2", "sigma")
 
 # Run the model
-model_run = jags(data = model_data,
-                 parameters.to.save = model_parameters,
-                 model.file = textConnection(model_code))
+model_run <- jags(
+  data = model_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code)
+)
 
 # Simulated results -------------------------------------------------------
 
@@ -94,4 +96,4 @@ model_run = jags(data = model_data,
 # Also look at the R-hat values - they need to be close to 1 if convergence has been achieved
 plot(model_run)
 print(model_run)
-#traceplot(model_run)
+# traceplot(model_run)

@@ -7,7 +7,7 @@
 # This model assumes the mixtures are on the means, but all standard deviations are equal
 
 # Some boiler plate code to clear the workspace, set the working directory, and load in required packages
-rm(list=ls())
+rm(list = ls())
 library(R2jags)
 library(mvtnorm) # for multivariate normal distribution
 
@@ -35,18 +35,18 @@ library(mvtnorm) # for multivariate normal distribution
 # Simulate data -----------------------------------------------------------
 
 # Some R code to simulate data from the above model
-G = 3
-N = 200
-M = 2
-mu_g = matrix(c(-5, 0, 2, -5, 0, 2), ncol = 2, nrow = G)
-Sigma = diag(2)
-theta = matrix(rnorm(N * G, 0, 3), ncol = G, nrow = N)
-pi = exp(theta)/apply(exp(theta), 1, sum)
-Z = rep(NA, N)
-y = matrix(NA, ncol = M, nrow = N)
-for(i in 1:N) {
-  Z[i] = sample(1:G, size = 1, prob = pi[i,])
-  y[i, ] = rmvnorm(1, mu_g[Z[i], ], Sigma)
+G <- 3
+N <- 200
+M <- 2
+mu_g <- matrix(c(-5, 0, 2, -5, 0, 2), ncol = 2, nrow = G)
+Sigma <- diag(2)
+theta <- matrix(rnorm(N * G, 0, 3), ncol = G, nrow = N)
+pi <- exp(theta) / apply(exp(theta), 1, sum)
+Z <- rep(NA, N)
+y <- matrix(NA, ncol = M, nrow = N)
+for (i in 1:N) {
+  Z[i] <- sample(1:G, size = 1, prob = pi[i, ])
+  y[i, ] <- rmvnorm(1, mu_g[Z[i], ], Sigma)
 }
 
 # Create a quick plot
@@ -55,7 +55,7 @@ plot(y) # Should be G modes
 # Jags code ---------------------------------------------------------------
 
 # Jags code to fit the model to the simulated data
-model_code = '
+model_code <- "
 model
 {
   # Likelihood
@@ -95,18 +95,20 @@ model
   mu_g[1:G, 1] <- sort(mu_g_raw[1:G, 1])
 
 }
-'
+"
 
 # Set up the data
-model_data = list(N = N, y = y, G = G, M = M)
+model_data <- list(N = N, y = y, G = G, M = M)
 
 # Choose the parameters to watch
-model_parameters =  c("mu_g", "Sigma", "Z", "pi")
+model_parameters <- c("mu_g", "Sigma", "Z", "pi")
 
 # Run the model
-model_run = jags(data = model_data,
-                 parameters.to.save = model_parameters,
-                 model.file=textConnection(model_code))
+model_run <- jags(
+  data = model_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code)
+)
 
 # Simulated results -------------------------------------------------------
 
@@ -121,5 +123,3 @@ print(model_run)
 # Other tasks -------------------------------------------------------------
 
 # Perhaps exercises, or other general remarks
-
-

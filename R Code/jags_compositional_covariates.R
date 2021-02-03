@@ -32,25 +32,25 @@ library(R2jags)
 # Simulate data -----------------------------------------------------------
 
 # Some R code to simulate data from the above model
-N = 100
-K = 3
-x = matrix(NA, ncol = K, nrow = N)
+N <- 100
+K <- 3
+x <- matrix(NA, ncol = K, nrow = N)
 set.seed(124)
-for(i in 1:N) {
-  x[i,] = rgamma(K,1,1)
-  x[i,] = x[i,]/sum(x[i,])
+for (i in 1:N) {
+  x[i, ] <- rgamma(K, 1, 1)
+  x[i, ] <- x[i, ] / sum(x[i, ])
 }
-alpha = rnorm(1)
-beta = rnorm(3, 0, sd = 5)
-sigma = runif(1)
-y = rnorm(N, mean = alpha + x%*%beta, sd = sigma)
+alpha <- rnorm(1)
+beta <- rnorm(3, 0, sd = 5)
+sigma <- runif(1)
+y <- rnorm(N, mean = alpha + x %*% beta, sd = sigma)
 
 pairs(cbind(x, y))
 
 # Jags code ---------------------------------------------------------------
 
 # Jags code to fit the model to the simulated data
-model_code = '
+model_code <- "
 model
 {
   # Likelihood
@@ -67,26 +67,28 @@ model
   alpha ~ dnorm(0, 100^-2)
   sigma ~ dt(0, 10^-2, 1)T(0,)
 }
-'
+"
 
 # Set up the data
-model_data = list(N = N, y = y, x = x)
+model_data <- list(N = N, y = y, x = x)
 
 # Choose the parameters to watch
-model_parameters =  c("alpha","beta","sigma","y_sim")
+model_parameters <- c("alpha", "beta", "sigma", "y_sim")
 
 # Run the model
-model_run = jags(data = model_data,
-                 parameters.to.save = model_parameters,
-                 model.file=textConnection(model_code))
+model_run <- jags(
+  data = model_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code)
+)
 
 # Simulated results -------------------------------------------------------
 
 plot(model_run)
 
-y_sim = model_run$BUGSoutput$mean$y_sim
+y_sim <- model_run$BUGSoutput$mean$y_sim
 plot(y, y_sim)
-abline(a=0, b=1)
+abline(a = 0, b = 1)
 
 # Results and output of the simulated example, to include convergence checking, output plots, interpretation etc
 
@@ -98,5 +100,3 @@ abline(a=0, b=1)
 # Other tasks -------------------------------------------------------------
 
 # Perhaps exercises, or other general remarks
-
-

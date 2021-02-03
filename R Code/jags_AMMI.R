@@ -51,42 +51,42 @@ library(ggplot2)
 # We will follow the simulation strategy detailed in Section 3.1 of the Josse et al paper
 
 # Specify fixed values
-Q = 1 # Number of components
-I = 5 # Number of genotypes
-J = 9 # Number of environments
-N = I*J # Total number of obs
-m = 90
-s_mu = 20
-s_alpha = 10
-s_beta = 10
-s_lambda = 10
-S_ME = 10
+Q <- 1 # Number of components
+I <- 5 # Number of genotypes
+J <- 9 # Number of environments
+N <- I * J # Total number of obs
+m <- 90
+s_mu <- 20
+s_alpha <- 10
+s_beta <- 10
+s_lambda <- 10
+S_ME <- 10
 
 # Some further fixed values
-mu = 100
-sigma_E = 3/2 # Not sure why S_ME was specified if they're also giving sigma_E
-alpha = c(-1, -1, 0, 1, 1)
-beta = -4:4
-lambda_1 = 12
-gamma = seq(2, -2)/sqrt(10)
-delta = c(0.5, 0.5, rep(0, 5), -0.5, -0.5)
+mu <- 100
+sigma_E <- 3 / 2 # Not sure why S_ME was specified if they're also giving sigma_E
+alpha <- c(-1, -1, 0, 1, 1)
+beta <- -4:4
+lambda_1 <- 12
+gamma <- seq(2, -2) / sqrt(10)
+delta <- c(0.5, 0.5, rep(0, 5), -0.5, -0.5)
 
 # Now simulate the values
 set.seed(123)
-G_by_E = expand.grid(1:I, 1:J)
-mu_ij = mu + alpha[G_by_E[,1]] + beta[G_by_E[,2]] + lambda_1 * gamma[G_by_E[,1]] * delta[G_by_E[,2]]
-Y = rnorm(N, mu_ij, sigma_E)
+G_by_E <- expand.grid(1:I, 1:J)
+mu_ij <- mu + alpha[G_by_E[, 1]] + beta[G_by_E[, 2]] + lambda_1 * gamma[G_by_E[, 1]] * delta[G_by_E[, 2]]
+Y <- rnorm(N, mu_ij, sigma_E)
 
 # Can create some plots
-qplot(x = G_by_E[,1], y = Y, geom = 'boxplot', group = G_by_E[,1], xlab = 'Genotype')
-qplot(x = G_by_E[,2], y = Y, geom = 'boxplot', group = G_by_E[,2], xlab = 'Environment')
+qplot(x = G_by_E[, 1], y = Y, geom = "boxplot", group = G_by_E[, 1], xlab = "Genotype")
+qplot(x = G_by_E[, 2], y = Y, geom = "boxplot", group = G_by_E[, 2], xlab = "Environment")
 
 
 # Q = 1 model -------------------------------------------------------------
 
 # This is the simple Q = 1 model - only here for understanding
 # Jags code to fit the model to the simulated data
-model_code = '
+model_code <- "
 model
 {
   # Likelihood
@@ -113,29 +113,35 @@ model
   # Prior on residual standard deviation
   sigma_E ~ dunif(0, S_ME)
 }
-'
+"
 
 # Set up the data
-model_data = list(N = N,
-                  Y = Y,
-                  I = I,
-                  J = J,
-                  genotype = G_by_E[,1],
-                  environment = G_by_E[,2],
-                  s_mu = s_mu,
-                  s_alpha = s_alpha,
-                  s_beta = s_beta,
-                  s_lambda = s_lambda,
-                  S_ME = S_ME)
+model_data <- list(
+  N = N,
+  Y = Y,
+  I = I,
+  J = J,
+  genotype = G_by_E[, 1],
+  environment = G_by_E[, 2],
+  s_mu = s_mu,
+  s_alpha = s_alpha,
+  s_beta = s_beta,
+  s_lambda = s_lambda,
+  S_ME = S_ME
+)
 
 # Choose the parameters to watch
-model_parameters =  c("alpha", "beta", "lambda_1", "gamma", "delta",
-                      'sigma_E')
+model_parameters <- c(
+  "alpha", "beta", "lambda_1", "gamma", "delta",
+  "sigma_E"
+)
 
 # Run the model
-model_run = jags(data = model_data,
-                 parameters.to.save = model_parameters,
-                 model.file=textConnection(model_code))
+model_run <- jags(
+  data = model_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code)
+)
 
 # Look at the results
 plot(model_run)
@@ -145,7 +151,7 @@ plot(model_run)
 
 # Second model - general Q ------------------------------------------------
 
-model_code = '
+model_code <- "
 model
 {
   # Likelihood
@@ -187,30 +193,36 @@ model
   # Prior on residual standard deviation
   sigma_E ~ dunif(0, S_ME)
 }
-'
+"
 
 # Set up the data
-model_data = list(N = N,
-                  Y = Y,
-                  I = I,
-                  J = J,
-                  Q = 2, # Set Q to be 2 even though the simulation was for Q = 1
-                  genotype = G_by_E[,1],
-                  environment = G_by_E[,2],
-                  s_mu = s_mu,
-                  s_alpha = s_alpha,
-                  s_beta = s_beta,
-                  s_lambda = s_lambda,
-                  S_ME = S_ME)
+model_data <- list(
+  N = N,
+  Y = Y,
+  I = I,
+  J = J,
+  Q = 2, # Set Q to be 2 even though the simulation was for Q = 1
+  genotype = G_by_E[, 1],
+  environment = G_by_E[, 2],
+  s_mu = s_mu,
+  s_alpha = s_alpha,
+  s_beta = s_beta,
+  s_lambda = s_lambda,
+  S_ME = S_ME
+)
 
 # Choose the parameters to watch
-model_parameters =  c("alpha", "beta", "lambda", "gamma", "delta",
-                      'sigma_E')
+model_parameters <- c(
+  "alpha", "beta", "lambda", "gamma", "delta",
+  "sigma_E"
+)
 
 # Run the model
-model_run = jags(data = model_data,
-                 parameters.to.save = model_parameters,
-                 model.file=textConnection(model_code))
+model_run <- jags(
+  data = model_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code)
+)
 
 # Plot the results
 plot(model_run)
@@ -224,5 +236,3 @@ plot(model_run)
 # Other tasks -------------------------------------------------------------
 
 # Perhaps exercises, or other general remarks
-
-

@@ -32,26 +32,26 @@ library(R2jags)
 # Simulate data -----------------------------------------------------------
 
 set.seed(123) # Set the seed
-N = 200 # Number of obs
-p = 3 # Number of explanatory variables
-N_miss_x = 100 # Number of missing x values
-N_miss_y = 30 # Number of missing y values
-X = X_obs = matrix(rnorm(N*p), ncol = p, nrow = N)
-alpha = 3
-beta = c(-1, 2, 1)
-sigma = 0.5
-y = y_obs = X%*%beta + rnorm(N, 0, sigma)
+N <- 200 # Number of obs
+p <- 3 # Number of explanatory variables
+N_miss_x <- 100 # Number of missing x values
+N_miss_y <- 30 # Number of missing y values
+X <- X_obs <- matrix(rnorm(N * p), ncol = p, nrow = N)
+alpha <- 3
+beta <- c(-1, 2, 1)
+sigma <- 0.5
+y <- y_obs <- X %*% beta + rnorm(N, 0, sigma)
 
 # Remove the missing values for a random subset
-which_miss_x = sample(1:(N*p), size = N_miss_x)
-which_miss_y = sample(1:(N), size = N_miss_y)
-X_obs[which_miss_x] = NA
-y_obs[which_miss_y] = NA
+which_miss_x <- sample(1:(N * p), size = N_miss_x)
+which_miss_y <- sample(1:(N), size = N_miss_y)
+X_obs[which_miss_x] <- NA
+y_obs[which_miss_y] <- NA
 
 # Jags code ---------------------------------------------------------------
 
 # Jags code to fit the model to the simulated data
-model_code = '
+model_code <- "
 model
 {
   # Likelihood
@@ -71,48 +71,51 @@ model
   }
   sigma ~ dt(0, 10^-1, 1)T(0, )
 }
-'
+"
 
 # Simulated results -------------------------------------------------------
 
 # Run this model
 
 # Trick is to get the miss_row and miss_col vectors set up right
-which_miss = which(is.na(X_obs), arr.ind = TRUE)
+which_miss <- which(is.na(X_obs), arr.ind = TRUE)
 
 # Set up the data
-model_data = list(N = N,
-                  y = y_obs[,1], # Simulated data created a matrix, but JAGS wants a vector
-                  X = X_obs,
-                  p = ncol(X_obs),
-                  N_miss_x = nrow(which_miss),
-                  miss_row = which_miss[,1],
-                  miss_col = which_miss[,2])
+model_data <- list(
+  N = N,
+  y = y_obs[, 1], # Simulated data created a matrix, but JAGS wants a vector
+  X = X_obs,
+  p = ncol(X_obs),
+  N_miss_x = nrow(which_miss),
+  miss_row = which_miss[, 1],
+  miss_col = which_miss[, 2]
+)
 
 # Choose the parameters to watch
-model_parameters =  c("alpha", "beta", "sigma", "fits", "X")
+model_parameters <- c("alpha", "beta", "sigma", "fits", "X")
 
 # Run the model
-model_run = jags(data = model_data,
-                 parameters.to.save = model_parameters,
-                 model.file=textConnection(model_code))
+model_run <- jags(
+  data = model_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code)
+)
 
 # See if it converged
 plot(model_run) # Seemed to estimate the parameters well
 
 # Now plot the predictions and see if it worked
-fits = model_run$BUGSoutput$mean$fits
+fits <- model_run$BUGSoutput$mean$fits
 
 plot(y, fits)
-abline(a = 0, b = 1, col = 'red')
+abline(a = 0, b = 1, col = "red")
 # Looks ok
 
 # What about the missing y values
 plot(y[which_miss_y], fits[which_miss_y])
-abline(a = 0, b = 1, col = 'red') # not so good but ok
+abline(a = 0, b = 1, col = "red") # not so good but ok
 
 # And the missing X values
-X_fit = model_run$BUGSoutput$mean$X
+X_fit <- model_run$BUGSoutput$mean$X
 plot(as.vector(X[which_miss_x]), as.vector(X_fit[which_miss_x]))
-abline(a = 0, b = 1, col = 'red') # Does ok
-
+abline(a = 0, b = 1, col = "red") # Does ok

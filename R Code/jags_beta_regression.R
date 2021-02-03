@@ -6,7 +6,7 @@
 # In this code we generate some data from a beta linear regression model and fit is using jags. We then intepret the output.
 
 # Some boiler plate code to clear the workspace, and load in required packages
-rm(list=ls()) # Clear the workspace
+rm(list = ls()) # Clear the workspace
 library(R2jags)
 library(boot)
 
@@ -33,18 +33,18 @@ library(boot)
 # Simulate data -----------------------------------------------------------
 
 # Some R code to simulate data from the above model
-T = 100
-alpha = -1
-beta = 0.2
-phi = 5
+T <- 100
+alpha <- -1
+beta <- 0.2
+phi <- 5
 # Set the seed so this is repeatable
 set.seed(123)
-x = sort(runif(T, 0, 10)) # Sort as it makes the plotted lines neater
-logit_mu = alpha + beta * x
-mu = inv.logit(logit_mu)
-a = mu * phi
-b = (1 - mu) * phi
-y = rbeta(T, a, b)
+x <- sort(runif(T, 0, 10)) # Sort as it makes the plotted lines neater
+logit_mu <- alpha + beta * x
+mu <- inv.logit(logit_mu)
+a <- mu * phi
+b <- (1 - mu) * phi
+y <- rbeta(T, a, b)
 
 # Also creat a plot
 plot(x, y)
@@ -54,7 +54,7 @@ lines(x, mu)
 
 # Jags code to fit the model to the simulated data
 
-model_code = '
+model_code <- "
 model
 {
   # Likelihood
@@ -70,18 +70,20 @@ model
   beta ~ dnorm(0, 10^-2)
   phi ~ dunif(0, 10)
 }
-'
+"
 
 # Set up the data
-model_data = list(T = T, y = y, x = x)
+model_data <- list(T = T, y = y, x = x)
 
 # Choose the parameters to watch
-model_parameters =  c("alpha","beta","phi")
+model_parameters <- c("alpha", "beta", "phi")
 
 # Run the model
-model_run = jags(data = model_data,
-                 parameters.to.save = model_parameters,
-                 model.file=textConnection(model_code))
+model_run <- jags(
+  data = model_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code)
+)
 
 # Simulated results -------------------------------------------------------
 
@@ -92,17 +94,18 @@ print(model_run)
 traceplot(model_run)
 
 # Create a plot of the posterior mean regression line
-post = print(model_run)
-alpha_mean = post$mean$alpha
-beta_mean = post$mean$beta
+post <- print(model_run)
+alpha_mean <- post$mean$alpha
+beta_mean <- post$mean$beta
 
 plot(x, y)
-lines(x, inv.logit(alpha_mean + beta_mean * x), col = 'red')
-lines(x, inv.logit(alpha + beta * x), col = 'blue')
-legend('topleft',
-       legend = c('Truth', 'Posterior mean'),
-       lty=1,
-       col=c('blue','red'))
+lines(x, inv.logit(alpha_mean + beta_mean * x), col = "red")
+lines(x, inv.logit(alpha + beta * x), col = "blue")
+legend("topleft",
+  legend = c("Truth", "Posterior mean"),
+  lty = 1,
+  col = c("blue", "red")
+)
 # Blue and red lines should be pretty close
 
 # Real example ------------------------------------------------------------
@@ -111,27 +114,29 @@ legend('topleft',
 library(datasets)
 head(attenu)
 
-#Set up the data
-acc=with(attenu,list(y=attenu$accel
-                       ,x=attenu$dist
-                       ,T=nrow(attenu)))
+# Set up the data
+acc <- with(attenu, list(
+  y = attenu$accel,
+  x = attenu$dist,
+  T = nrow(attenu)
+))
 # Plot
-plot(attenu$dist,attenu$accel)
+plot(attenu$dist, attenu$accel)
 
 # Set up jags model
-jags_model=jags(acc,
-                parameters.to.save = model_parameters
-                ,model.file = textConnection(model_code),
-                n.chains=4,
-                n.iter=1000,
-                n.burnin=200,
-                n.thin=2)
+jags_model <- jags(acc,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code),
+  n.chains = 4,
+  n.iter = 1000,
+  n.burnin = 200,
+  n.thin = 2
+)
 # Plot the jags output
 print(jags_model)
 traceplot(jags_model)
 
 # Plot of posterior line
-post=print(jags_model)
-alpha_mean=post$mean$alpha
-beta_mean=post$mean$beta
-
+post <- print(jags_model)
+alpha_mean <- post$mean$alpha
+beta_mean <- post$mean$beta

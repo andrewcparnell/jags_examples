@@ -39,5 +39,3 @@
 # Other tasks -------------------------------------------------------------
 
 # Perhaps exercises, or other general remarks
-
-

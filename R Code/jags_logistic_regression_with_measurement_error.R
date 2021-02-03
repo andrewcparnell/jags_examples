@@ -7,7 +7,7 @@
 # of a logistic regression with measurement error in the covariates
 
 # Some boiler plate code to clear the workspace, and load in required packages
-rm(list=ls()) # Clear the workspace
+rm(list = ls()) # Clear the workspace
 library(R2jags)
 library(boot) # Package contains the logit transform
 
@@ -42,29 +42,29 @@ library(boot) # Package contains the logit transform
 # Simulate data -----------------------------------------------------------
 
 # Some R code to simulate data from the above model
-N = 100
+N <- 100
 set.seed(123)
-mu_1 = sort(runif(N, 0, 10))
-mu_2 = sort(runif(N, 0, 10))
-sigma_1 = runif(N, 0.1, 0.3)
-sigma_2 = runif(N, 0.1, 0.3)
-x_1 = rnorm(N, mu_1, sigma_1)
-x_2 = rnorm(N, mu_2, sigma_2)
-alpha = 1
-beta_1 = 0.2
-beta_2 = -0.5
-logit_p = alpha + beta_1 * mu_1 + beta_2 * mu_2
-p = inv.logit(logit_p)
-y = rbinom(N,1,p)
+mu_1 <- sort(runif(N, 0, 10))
+mu_2 <- sort(runif(N, 0, 10))
+sigma_1 <- runif(N, 0.1, 0.3)
+sigma_2 <- runif(N, 0.1, 0.3)
+x_1 <- rnorm(N, mu_1, sigma_1)
+x_2 <- rnorm(N, mu_2, sigma_2)
+alpha <- 1
+beta_1 <- 0.2
+beta_2 <- -0.5
+logit_p <- alpha + beta_1 * mu_1 + beta_2 * mu_2
+p <- inv.logit(logit_p)
+y <- rbinom(N, 1, p)
 
 # Have a quick look at the effect of x_1 and x_2 on y
-plot(x_1,y)
-plot(x_2,y) # Clearly when x is high y tends to be 0
+plot(x_1, y)
+plot(x_2, y) # Clearly when x is high y tends to be 0
 
 # Jags code ---------------------------------------------------------------
 
 # Jags code to fit the model to the simulated data
-model_code = '
+model_code <- "
 model
 {
   # Likelihood
@@ -80,19 +80,23 @@ model
   beta_1 ~ dnorm(0, 10^-2)
   beta_2 ~ dnorm(0, 10^-2)
 }
-'
+"
 
 # Set up the data
-model_data = list(N = N, y = y, mu_1 = mu_1, sigma_1 = sigma_1,
-                  mu_2 = mu_2, sigma_2 = sigma_2, K = 1)
+model_data <- list(
+  N = N, y = y, mu_1 = mu_1, sigma_1 = sigma_1,
+  mu_2 = mu_2, sigma_2 = sigma_2, K = 1
+)
 
 # Choose the parameters to watch
-model_parameters =  c("alpha", "beta_1", "beta_2", "x_1", "x_2")
+model_parameters <- c("alpha", "beta_1", "beta_2", "x_1", "x_2")
 
 # Run the model
-model_run = jags(data = model_data,
-                 parameters.to.save = model_parameters,
-                 model.file = textConnection(model_code))
+model_run <- jags(
+  data = model_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code)
+)
 
 # Simulated results -------------------------------------------------------
 
@@ -102,28 +106,28 @@ plot(model_run)
 print(model_run)
 
 # Create a plot of the posterior mean regression line
-post = print(model_run)
-alpha_mean = post$mean$alpha[1]
-beta_1_mean = post$mean$beta_1[1]
-beta_2_mean = post$mean$beta_2[1]
-x_1_mean = post$mean$x_1
-x_2_mean = post$mean$x_2
+post <- print(model_run)
+alpha_mean <- post$mean$alpha[1]
+beta_1_mean <- post$mean$beta_1[1]
+beta_2_mean <- post$mean$beta_2[1]
+x_1_mean <- post$mean$x_1
+x_2_mean <- post$mean$x_2
 
 # As we have two explanatory variables I'm going to create two plots
 # holding one of the variables fixed whilst varying the other
 par(mfrow = c(2, 1))
 plot(x_1_mean, y)
 points(x_1_mean,
-      inv.logit(alpha_mean + beta_1_mean * x_1_mean + beta_2_mean * mean(x_2_mean)),
-      col = 'red')
+  inv.logit(alpha_mean + beta_1_mean * x_1_mean + beta_2_mean * mean(x_2_mean)),
+  col = "red"
+)
 plot(x_2_mean, y)
 points(x_2,
-      inv.logit(alpha_mean + beta_1_mean * mean(x_1_mean) + beta_2_mean * x_2_mean),
-      col = 'red')
+  inv.logit(alpha_mean + beta_1_mean * mean(x_1_mean) + beta_2_mean * x_2_mean),
+  col = "red"
+)
 par(mfrow = c(1, 1))
 
 # See how well it estimated x_1 and x_2
 plot(x_1, x_1_mean) # A Good fit
 plot(x_2, x_2_mean)
-
-

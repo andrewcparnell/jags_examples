@@ -8,7 +8,7 @@
 # This model assumes that the observations are observed with known noise, and that the mixtures are on the latent unobserved observations
 
 # Some boiler plate code to clear the workspace, set the working directory, and load in required packages
-rm(list=ls())
+rm(list = ls())
 library(R2jags)
 
 # Maths -------------------------------------------------------------------
@@ -38,27 +38,27 @@ library(R2jags)
 # Simulate data -----------------------------------------------------------
 
 # Some R code to simulate data from the above model
-G = 3
-N = 200
+G <- 3
+N <- 200
 set.seed(123)
-sigma_tilde = runif(N, 0.05, 0.1)
-mu_g = c(-5, 0, 2)
-sigma_g = c(1,2,3)
-theta = matrix(rnorm(N * G, 0, 3), ncol = G, nrow = N)
-pi = exp(theta)/apply(exp(theta), 1, sum)
-Z = rep(NA, N)
-for(i in 1:N) Z[i] = sample(1:G, size = 1, prob = pi[i,])
-y_tilde = rnorm(N, mu_g[Z], sigma_g[Z])
-y = rnorm(N, y_tilde, sigma_tilde)
+sigma_tilde <- runif(N, 0.05, 0.1)
+mu_g <- c(-5, 0, 2)
+sigma_g <- c(1, 2, 3)
+theta <- matrix(rnorm(N * G, 0, 3), ncol = G, nrow = N)
+pi <- exp(theta) / apply(exp(theta), 1, sum)
+Z <- rep(NA, N)
+for (i in 1:N) Z[i] <- sample(1:G, size = 1, prob = pi[i, ])
+y_tilde <- rnorm(N, mu_g[Z], sigma_g[Z])
+y <- rnorm(N, y_tilde, sigma_tilde)
 
 # Create a quick plot
 hist(y, breaks = 30, freq = FALSE)
-for(g in 1:G) curve(dnorm(x, mean = mu_g[g])/G, col = g, add= TRUE)
+for (g in 1:G) curve(dnorm(x, mean = mu_g[g]) / G, col = g, add = TRUE)
 
 # Jags code ---------------------------------------------------------------
 
 # Jags code to fit the model to the simulated data
-model_code = '
+model_code <- "
 model
 {
   # Likelihood
@@ -84,18 +84,20 @@ model
   mu_g <- sort(mu_g_raw[1:G])
 
 }
-'
+"
 
 # Set up the data
-model_data = list(N = N, y = y, sigma_tilde = sigma_tilde, G = G)
+model_data <- list(N = N, y = y, sigma_tilde = sigma_tilde, G = G)
 
 # Choose the parameters to watch
-model_parameters =  c("mu_g", "sigma_g", "Z", "pi")
+model_parameters <- c("mu_g", "sigma_g", "Z", "pi")
 
 # Run the model
-model_run = jags(data = model_data,
-                 parameters.to.save = model_parameters,
-                 model.file=textConnection(model_code))
+model_run <- jags(
+  data = model_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code)
+)
 
 # Simulated results -------------------------------------------------------
 

@@ -7,7 +7,7 @@
 # This model assumes the mixtures are on the means, but all standard deviations are equal
 
 # Some boiler plate code to clear the workspace, set the working directory, and load in required packages
-rm(list=ls())
+rm(list = ls())
 library(R2jags)
 
 # Maths -------------------------------------------------------------------
@@ -34,24 +34,24 @@ library(R2jags)
 # Simulate data -----------------------------------------------------------
 
 # Some R code to simulate data from the above model
-G = 3
-N = 200
-mu_g = c(-5, 0, 2)
-sigma = 1
-theta = matrix(rnorm(N * G, 0, 3), ncol = G, nrow = N)
-pi = exp(theta)/apply(exp(theta), 1, sum)
-Z = rep(NA, N)
-for(i in 1:N) Z[i] = sample(1:G, size = 1, prob = pi[i,])
-y = rnorm(N, mu_g[Z], sigma)
+G <- 3
+N <- 200
+mu_g <- c(-5, 0, 2)
+sigma <- 1
+theta <- matrix(rnorm(N * G, 0, 3), ncol = G, nrow = N)
+pi <- exp(theta) / apply(exp(theta), 1, sum)
+Z <- rep(NA, N)
+for (i in 1:N) Z[i] <- sample(1:G, size = 1, prob = pi[i, ])
+y <- rnorm(N, mu_g[Z], sigma)
 
 # Create a quick plot
 hist(y, breaks = 30, freq = FALSE)
-for(g in 1:G) curve(dnorm(x, mean = mu_g[g])/G, col = g, add= TRUE)
+for (g in 1:G) curve(dnorm(x, mean = mu_g[g]) / G, col = g, add = TRUE)
 
 # Jags code ---------------------------------------------------------------
 
 # Jags code to fit the model to the simulated data
-model_code = '
+model_code <- "
 model
 {
   # Likelihood
@@ -76,18 +76,20 @@ model
   mu_g <- sort(mu_g_raw[1:G])
 
 }
-'
+"
 
 # Set up the data
-model_data = list(N = N, y = y, G = G)
+model_data <- list(N = N, y = y, G = G)
 
 # Choose the parameters to watch
-model_parameters =  c("mu_g", "sigma", "Z", "pi")
+model_parameters <- c("mu_g", "sigma", "Z", "pi")
 
 # Run the model
-model_run = jags(data = model_data,
-                 parameters.to.save = model_parameters,
-                 model.file=textConnection(model_code))
+model_run <- jags(
+  data = model_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code)
+)
 
 # Simulated results -------------------------------------------------------
 
@@ -102,30 +104,31 @@ print(model_run)
 library(datasets)
 head(women)
 
-#Set up the data
-jags_data=list(y=women[,c(1)]
-               ,N= dim(women)[1]
-               ,G=5)
+# Set up the data
+jags_data <- list(
+  y = women[, c(1)],
+  N = dim(women)[1],
+  G = 5
+)
 
 # Plot
-plot(cars$dist,cars$speed)
+plot(cars$dist, cars$speed)
 
 # Set up jags model
-jags_model=jags(jags_data,
-                parameters.to.save = model_parameters
-                ,model.file = textConnection(model_code),
-                n.chains=4,
-                n.iter=1000,
-                n.burnin=200,
-                n.thin=2)
+jags_model <- jags(jags_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code),
+  n.chains = 4,
+  n.iter = 1000,
+  n.burnin = 200,
+  n.thin = 2
+)
 
 # Plot of posterior line
-post=print(jags_model)
-alpha_mean=post$mean$alpha
-beta_mean=post$mean$beta
+post <- print(jags_model)
+alpha_mean <- post$mean$alpha
+beta_mean <- post$mean$beta
 
 # Other tasks -------------------------------------------------------------
 
 # Perhaps exercises, or other general remarks
-
-

@@ -6,7 +6,7 @@
 # In this code we generate some data from a simple linear regression model and fit is using jags. We then intepret the output.
 
 # Some boiler plate code to clear the workspace, and load in required packages
-rm(list=ls()) # Clear the workspace
+rm(list = ls()) # Clear the workspace
 library(R2jags)
 
 # Maths -------------------------------------------------------------------
@@ -28,14 +28,14 @@ library(R2jags)
 # Simulate data -----------------------------------------------------------
 
 # Some R code to simulate data from the above model
-n = 100
-alpha = 2
-beta = 3
-sigma = 1
+n <- 100
+alpha <- 2
+beta <- 3
+sigma <- 1
 # Set the seed so this is repeatable
 set.seed(123)
-x = sort(runif(n, 0, 10)) # Sort as it makes the plotted lines neater
-y = rnorm(n, mean = alpha + beta * x, sd = sigma)
+x <- sort(runif(n, 0, 10)) # Sort as it makes the plotted lines neater
+y <- rnorm(n, mean = alpha + beta * x, sd = sigma)
 
 # Also creat a plot
 plot(x, y)
@@ -45,7 +45,7 @@ lines(x, alpha + beta * x)
 
 # Jags code to fit the model to the simulated data
 
-model_code = '
+model_code <- "
 model
 {
   # Likelihood
@@ -61,22 +61,24 @@ model
 
   sigma ~ dunif(0, 10)
 }
-'
+"
 
 # Set up the data
-model_data = list(n = n, y = y, x = x)
+model_data <- list(n = n, y = y, x = x)
 
 # Choose the parameters to watch
-model_parameters =  c("alpha", "beta", "sigma")
+model_parameters <- c("alpha", "beta", "sigma")
 
 # Run the model
-model_run = jags(data = model_data,
-                 parameters.to.save = model_parameters,
-                 model.file=textConnection(model_code),
-                 n.chains=4, # Number of different starting positions
-                 n.iter=1000, # Number of iterations
-                 n.burnin=200, # Number of iterations to remove at start
-                 n.thin=2) # Amount of thinning
+model_run <- jags(
+  data = model_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code),
+  n.chains = 4, # Number of different starting positions
+  n.iter = 1000, # Number of iterations
+  n.burnin = 200, # Number of iterations to remove at start
+  n.thin = 2
+) # Amount of thinning
 
 # Simulated results -------------------------------------------------------
 
@@ -87,30 +89,31 @@ print(model_run)
 traceplot(model_run)
 
 # Create a plot of the posterior mean regression line
-post = print(model_run)
-alpha_mean = post$mean$alpha[1]
-beta_mean = post$mean$beta[1]
+post <- print(model_run)
+alpha_mean <- post$mean$alpha[1]
+beta_mean <- post$mean$beta[1]
 
 plot(x, y)
-lines(x, alpha_mean + beta_mean * x, col = 'red')
-lines(x, alpha + beta * x, col = 'blue')
-legend('topleft',
-       legend = c('Truth', 'Posterior mean'),
-       lty=1,
-       col=c('blue','red'))
+lines(x, alpha_mean + beta_mean * x, col = "red")
+lines(x, alpha + beta * x, col = "blue")
+legend("topleft",
+  legend = c("Truth", "Posterior mean"),
+  lty = 1,
+  col = c("blue", "red")
+)
 # Blue and red lines should be pretty close
 
 # Real example ------------------------------------------------------------
 
 # Use the prostate data
-prostate = read.csv('https://raw.githubusercontent.com/andrewcparnell/bhm_course/master/data/prostate.csv')
+prostate <- read.csv("https://raw.githubusercontent.com/andrewcparnell/bhm_course/master/data/prostate.csv")
 head(prostate)
 
 # Get the data and standardise the x-values
-y = prostate$lpsa
-X = with(prostate, cbind(lweight, age))
+y <- prostate$lpsa
+X <- with(prostate, cbind(lweight, age))
 
-model_code = '
+model_code <- "
 model
 {
   # Likelihood
@@ -130,22 +133,30 @@ model
   }
   sigma ~ dunif(0, 100)
 }
-'
+"
 
 # Create values to predict
-X_pred = expand.grid(seq(2.4, 5,length = 10),
-                     seq(40, 80,length = 10))
+X_pred <- expand.grid(
+  seq(2.4, 5, length = 10),
+  seq(40, 80, length = 10)
+)
 
-jags_run = jags(data = list(n = nrow(prostate),
-                            p = ncol(X_std),
-                            y = prostate$lpsa,
-                            X = X_std,
-                            X_pred = X_pred,
-                            n_pred = nrow(X_pred)),
-                parameters.to.save = c('y_pred',
-                                       'alpha',
-                                       'beta'),
-                model.file = textConnection(model_code))
+jags_run <- jags(
+  data = list(
+    n = nrow(prostate),
+    p = ncol(X_std),
+    y = prostate$lpsa,
+    X = X_std,
+    X_pred = X_pred,
+    n_pred = nrow(X_pred)
+  ),
+  parameters.to.save = c(
+    "y_pred",
+    "alpha",
+    "beta"
+  ),
+  model.file = textConnection(model_code)
+)
 
 plot(jags_run)
-plot(X_pred[,1], jags_run$BUGSoutput$mean$y_pred)
+plot(X_pred[, 1], jags_run$BUGSoutput$mean$y_pred)

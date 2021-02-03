@@ -6,7 +6,7 @@
 # In this code we generate some data from a beta AR1 model and fit it using jags. We then intepret the output.
 
 # Some boiler plate code to clear the workspace, and load in required packages
-rm(list=ls()) # Clear the workspace
+rm(list = ls()) # Clear the workspace
 library(R2jags)
 library(boot)
 
@@ -32,22 +32,26 @@ library(boot)
 # Simulate data -----------------------------------------------------------
 
 # Some R code to simulate data from the above model
-T = 100
-alpha = 0
-beta = 0.9
-phi = 5
-sigma_mu = 1
+T <- 100
+alpha <- 0
+beta <- 0.9
+phi <- 5
+sigma_mu <- 1
 # Set the seed so this is repeatable
 set.seed(124)
-logit_mu = rep(NA, length = T)
-logit_mu[1] = alpha
-for(t in 2:T) logit_mu[t] = rnorm(1,
-                                  alpha + beta * logit_mu[t-1],
-                                  sigma_mu)
-mu = inv.logit(logit_mu)
-a = mu * phi
-b = (1 - mu) * phi
-y = rbeta(T, a, b)
+logit_mu <- rep(NA, length = T)
+logit_mu[1] <- alpha
+for (t in 2:T) {
+  logit_mu[t] <- rnorm(
+    1,
+    alpha + beta * logit_mu[t - 1],
+    sigma_mu
+  )
+}
+mu <- inv.logit(logit_mu)
+a <- mu * phi
+b <- (1 - mu) * phi
+y <- rbeta(T, a, b)
 
 # Also creat a plot
 plot(1:T, y)
@@ -56,7 +60,7 @@ lines(1:T, mu)
 # Jags code ---------------------------------------------------------------
 
 # Jags code to fit the model to the simulated data
-model_code = '
+model_code <- "
 model
 {
   # Likelihood
@@ -77,18 +81,20 @@ model
   phi ~ dunif(0, 10)
   sigma_mu ~ dunif(0, 10)
 }
-'
+"
 
 # Set up the data
-model_data = list(T = T, y = y)
+model_data <- list(T = T, y = y)
 
 # Choose the parameters to watch
-model_parameters =  c("alpha","beta","phi","sigma_mu", "mu")
+model_parameters <- c("alpha", "beta", "phi", "sigma_mu", "mu")
 
 # Run the model
-model_run = jags(data = model_data,
-                 parameters.to.save = model_parameters,
-                 model.file=textConnection(model_code))
+model_run <- jags(
+  data = model_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code)
+)
 stop()
 # Simulated results -------------------------------------------------------
 
@@ -98,16 +104,17 @@ plot(model_run)
 print(model_run)
 
 # Create a plot of the posterior mean regression line
-post = print(model_run)
-mu_mean = post$mean$mu
+post <- print(model_run)
+mu_mean <- post$mean$mu
 
 plot(1:T, y)
-lines(1:T, mu_mean, col = 'red')
-lines(1:T, mu, col = 'blue')
-legend('topleft',
-       legend = c('Truth', 'Posterior mean'),
-       lty=1,
-       col=c('blue','red'))
+lines(1:T, mu_mean, col = "red")
+lines(1:T, mu, col = "blue")
+legend("topleft",
+  legend = c("Truth", "Posterior mean"),
+  lty = 1,
+  col = c("blue", "red")
+)
 # Blue and red lines should be pretty close
 
 # Real example ------------------------------------------------------------
@@ -117,27 +124,31 @@ legend('topleft',
 library(datasets)
 head(attenu)
 
-#Set up the data
-acc=with(attenu,list(y=attenu$accel
-                     ,T=nrow(attenu)))
+# Set up the data
+acc <- with(attenu, list(
+  y = attenu$accel,
+  T = nrow(attenu)
+))
 # Plot
-plot(attenu$dist,attenu$accel,
-     main = "Acceleration vs Distance"
-     ,xlab="Distance",ylab="Accleration")
+plot(attenu$dist, attenu$accel,
+  main = "Acceleration vs Distance",
+  xlab = "Distance", ylab = "Accleration"
+)
 
 # Set up jags model
-jags_model=jags(acc,
-                parameters.to.save = model_parameters
-                ,model.file = textConnection(model_code),
-                n.chains=4,
-                n.iter=1000,
-                n.burnin=200,
-                n.thin=2)
+jags_model <- jags(acc,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code),
+  n.chains = 4,
+  n.iter = 1000,
+  n.burnin = 200,
+  n.thin = 2
+)
 # Plot the jags output
 print(jags_model)
 
 # Plot of posterior line
-post=print(jags_model)
-alpha_mean=post$mean$alpha
-beta_mean=post$mean$beta
-mu_mean=post$mean$mu
+post <- print(jags_model)
+alpha_mean <- post$mean$alpha
+beta_mean <- post$mean$beta
+mu_mean <- post$mean$mu

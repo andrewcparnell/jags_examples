@@ -6,7 +6,7 @@
 # In this file we fit a Bayesian muliple response regression model
 
 # Some boiler plate code to clear the workspace, and load in required packages
-rm(list=ls()) # Clear the workspace
+rm(list = ls()) # Clear the workspace
 library(R2jags)
 library(MASS) # For the multivariate normal distribution
 
@@ -35,32 +35,34 @@ library(MASS) # For the multivariate normal distribution
 # Simulate data -----------------------------------------------------------
 
 # Some R code to simulate data from the above model
-N = 100
-J = 3
-K = 5
+N <- 100
+J <- 3
+K <- 5
 set.seed(123)
-X = matrix(rnorm(N*K), nrow = N, ncol = K)
+X <- matrix(rnorm(N * K), nrow = N, ncol = K)
 
 # Simulate parameters
-Sigma = rWishart(1, df = J+1, Sigma = diag(J))[,,1]
-A = rnorm(J)
-B = matrix(rnorm(J*K)*5, ncol = J, nrow = K)
+Sigma <- rWishart(1, df = J + 1, Sigma = diag(J))[, , 1]
+A <- rnorm(J)
+B <- matrix(rnorm(J * K) * 5, ncol = J, nrow = K)
 
 # Get the means and simulate data
-mean = y = matrix(NA, ncol = J, nrow = N)
-for(i in 1:N) {
-  mean[i,] = A + X[i,]%*%B
-  y[i,] = mvrnorm(1, mean[i,], Sigma)
+mean <- y <- matrix(NA, ncol = J, nrow = N)
+for (i in 1:N) {
+  mean[i, ] <- A + X[i, ] %*% B
+  y[i, ] <- mvrnorm(1, mean[i, ], Sigma)
 }
 
 # Very hard to visualise!
-pairs(data.frame(y = y,
-                 X = X))
+pairs(data.frame(
+  y = y,
+  X = X
+))
 
 # Jags code ---------------------------------------------------------------
 
 # Jags code to fit the model to the simulated data
-model_code = '
+model_code <- "
 model
 {
   # Likelihood
@@ -79,19 +81,23 @@ model
     }
   }
 }
-'
+"
 
 # Set up the data
-model_data = list(N = N, y = y, X = X, K = ncol(X), J = ncol(y),
-                  I = diag(J))
+model_data <- list(
+  N = N, y = y, X = X, K = ncol(X), J = ncol(y),
+  I = diag(J)
+)
 
 # Choose the parameters to watch
-model_parameters =  c("A", "B", "Sigma")
+model_parameters <- c("A", "B", "Sigma")
 
 # Run the model
-model_run = jags(data = model_data,
-                 parameters.to.save = model_parameters,
-                 model.file = textConnection(model_code))
+model_run <- jags(
+  data = model_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code)
+)
 
 # Simulated results -------------------------------------------------------
 
@@ -99,15 +105,16 @@ model_run = jags(data = model_data,
 # Also look at the R-hat values - they need to be close to 1 if convergence has been achieved
 plot(model_run)
 print(model_run)
-#traceplot(model_run)
+# traceplot(model_run)
 
 # Check whether the values match the truth
-B_post = model_run$BUGSoutput$mean$B
-plot(B, B_post); abline(a=0, b=1)
-A_post = model_run$BUGSoutput$mean$A
-plot(A, A_post); abline(a=0, b=1)
+B_post <- model_run$BUGSoutput$mean$B
+plot(B, B_post)
+abline(a = 0, b = 1)
+A_post <- model_run$BUGSoutput$mean$A
+plot(A, A_post)
+abline(a = 0, b = 1)
 
 # Real example ------------------------------------------------------------
 
 # Not done yet
-

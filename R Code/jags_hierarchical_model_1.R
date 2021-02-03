@@ -6,7 +6,7 @@
 # In this code we generate some data from a single level hierarchical model (equivalently a random effects model) and fit it using JAGS. We then interpret the output
 
 # Some boiler plate code to clear the workspace, and load in required packages
-rm(list=ls()) # Clear the workspace
+rm(list = ls()) # Clear the workspace
 library(R2jags)
 
 # Maths -------------------------------------------------------------------
@@ -31,27 +31,27 @@ library(R2jags)
 # Simulate data -----------------------------------------------------------
 
 # Some R code to simulate data from the above model
-M = 5 # Number of groups
-alpha = 2
-sigma = 1
-sigma_b = 3
+M <- 5 # Number of groups
+alpha <- 2
+sigma <- 1
+sigma_b <- 3
 # Set the seed so this is repeatable
 set.seed(123)
-nj = sample(10:20, M, replace = TRUE) # Set the number of obs in each group between 5 and 10
-N = sum(nj)
-b = rnorm(M, 0, sigma_b)
-group = rep(1:M, times = nj)
-y = rnorm(N, mean = alpha + b[group], sd = sigma)
+nj <- sample(10:20, M, replace = TRUE) # Set the number of obs in each group between 5 and 10
+N <- sum(nj)
+b <- rnorm(M, 0, sigma_b)
+group <- rep(1:M, times = nj)
+y <- rnorm(N, mean = alpha + b[group], sd = sigma)
 
 # Also creat a plot
 boxplot(y ~ group)
-points(1:M, alpha + b, col = 'red')
+points(1:M, alpha + b, col = "red")
 
 # Jags code ---------------------------------------------------------------
 
 # Jags code to fit the model to the simulated data
 
-model_code = '
+model_code <- "
 model
 {
   # Likelihood
@@ -68,18 +68,20 @@ model
   sigma ~ dt(0, 10^-2, 1)T(0,)
   sigma_b ~ dt(0, 10^-2, 1)T(0,)
 }
-'
+"
 
 # Set up the data
-model_data = list(N = N, y = y, M = M, group = group)
+model_data <- list(N = N, y = y, M = M, group = group)
 
 # Choose the parameters to watch
-model_parameters =  c("alpha", "b", "sigma", "sigma_b")
+model_parameters <- c("alpha", "b", "sigma", "sigma_b")
 
 # Run the model
-model_run = jags(data = model_data,
-                 parameters.to.save = model_parameters,
-                 model.file=textConnection(model_code))
+model_run <- jags(
+  data = model_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code)
+)
 
 # Simulated results -------------------------------------------------------
 
@@ -90,13 +92,13 @@ print(model_run)
 traceplot(model_run)
 
 # Create a plot of the posterior mean regression line
-post = print(model_run)
-alpha_mean = as.numeric(post$mean$alpha) # Need the as.numeric otherwise it stores it as a weird 1D object
-b_mean = post$mean$b
+post <- print(model_run)
+alpha_mean <- as.numeric(post$mean$alpha) # Need the as.numeric otherwise it stores it as a weird 1D object
+b_mean <- post$mean$b
 
 boxplot(y ~ group)
-points(1:M, alpha + b, col = 'red', pch = 19)
-points(1:M, alpha_mean + b_mean, col = 'blue', pch = 19)
+points(1:M, alpha + b, col = "red", pch = 19)
+points(1:M, alpha_mean + b_mean, col = "blue", pch = 19)
 # Blue (true) and red (predicted) points should be pretty close
 
 # Real example ------------------------------------------------------------
@@ -105,30 +107,32 @@ points(1:M, alpha_mean + b_mean, col = 'blue', pch = 19)
 library(datasets)
 head(women)
 
-#Set up the data
-jags_data=list(y=women[,c(1)]
-,N= dim(women)[1]
-,M=ncol(women)
-,group = c(col(women)))
+# Set up the data
+jags_data <- list(
+  y = women[, c(1)],
+  N = dim(women)[1],
+  M = ncol(women),
+  group = c(col(women))
+)
 
 
 # Plot
-plot(cars$dist,cars$speed)
+plot(cars$dist, cars$speed)
 
 # Set up jags model
-jags_model=jags(jags_data,
-                parameters.to.save = model_parameters
-                ,model.file = textConnection(model_code),
-                n.chains=4,
-                n.iter=1000,
-                n.burnin=200,
-                n.thin=2)
+jags_model <- jags(jags_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code),
+  n.chains = 4,
+  n.iter = 1000,
+  n.burnin = 200,
+  n.thin = 2
+)
 
 # Plot output
 print(jags_model)
 
 # Plot of posterior line (needs to be edited from here on)
-post = print(real_data_run)
-alpha_mean = post$mean$alpha[1]
-beta_mean = post$mean$beta[1]
-
+post <- print(real_data_run)
+alpha_mean <- post$mean$alpha[1]
+beta_mean <- post$mean$beta[1]

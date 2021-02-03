@@ -12,7 +12,7 @@
 # 4) Use the predictions from this final model for analysis
 
 # Some boiler plate code to clear the workspace, and load in required packages
-rm(list=ls()) # Clear the workspace
+rm(list = ls()) # Clear the workspace
 library(R2jags)
 library(MASS)
 
@@ -48,24 +48,24 @@ library(MASS)
 # Simulate data -----------------------------------------------------------
 
 # Some R code to simulate data from the above model
-N = 20 # can take to N = 100 but fitting gets really slow ...
-alpha = 0
-sigma = 0.01
-tau = 1
-rho = 1
+N <- 20 # can take to N = 100 but fitting gets really slow ...
+alpha <- 0
+sigma <- 0.01
+tau <- 1
+rho <- 1
 set.seed(123)
-x = sort(runif(N))
-sigma_x = runif(N, 0, 0.05)
-x_obs = rnorm(N, x, sigma_x)
-Sigma = sigma^2 * diag(N) + tau^2 * exp( - rho * outer(x,x,'-')^2 )
-y = mvrnorm(1,rep(alpha,N), Sigma)
-plot(x_obs,y) # Black is what you see
-points(x, y, col = 'green') # Green is the truth
+x <- sort(runif(N))
+sigma_x <- runif(N, 0, 0.05)
+x_obs <- rnorm(N, x, sigma_x)
+Sigma <- sigma^2 * diag(N) + tau^2 * exp(-rho * outer(x, x, "-")^2)
+y <- mvrnorm(1, rep(alpha, N), Sigma)
+plot(x_obs, y) # Black is what you see
+points(x, y, col = "green") # Green is the truth
 
 # Jags code ---------------------------------------------------------------
 
 # Jags code for stage 1 with no input noise
-model_code_1 = '
+model_code_1 <- "
 model
 {
   # Likelihood
@@ -85,10 +85,10 @@ model
   tau ~ dunif(0, 10)
   rho ~ dunif(0.1, 5)
 }
-'
+"
 
 # Jags code for stage 2 with input noise
-model_code_2 = '
+model_code_2 <- "
 model
 {
   # Likelihood
@@ -108,82 +108,83 @@ model
   tau ~ dunif(0, 10)
   rho ~ dunif(0.1, 5)
 }
-'
+"
 
 # Simulated results -------------------------------------------------------
 
 # Run stage 1 with no input noise
 
 # Set up the data
-model_data = list(N = N, y = y, x = x_obs)
+model_data <- list(N = N, y = y, x = x_obs)
 
 # Choose the parameters to watch
-model_parameters =  c("alpha", "sigma", "tau", "rho")
+model_parameters <- c("alpha", "sigma", "tau", "rho")
 
 # Run the model - can be slow
-model_run_1 = jags(data = model_data,
-                 parameters.to.save = model_parameters,
-                 model.file=textConnection(model_code_1))
+model_run_1 <- jags(
+  data = model_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code_1)
+)
 
 # Check the fit
 plot(model_run_1)
 
 # Stage 2, produce predictions for the data points and calculate derivatives
 # y^new | y ~ N( Mu^new + Sigma_new^T solve(Sigma, y - Mu), Sigma_* - Sigma_new^T solve(Sigma, Sigma_new)
-post_means = model_run_1$BUGSoutput$mean
+post_means <- model_run_1$BUGSoutput$mean
 
 # Calculate predicted mean via a function
-pred_mean_calc = function(x_new) {
-  N_new = length(x_new) # Number of new predictions
-  Mu = rep(post_means$alpha, N) # Original GP mean
-  Mu_new = rep(post_means$alpha, N_new) # New GP mean
-  Sigma_new = post_means$tau[1]^2 * exp( -post_means$rho[1] * outer(x, x_new, '-')^2 ) # Cross-covariance of new to old
-  Sigma = post_means$sigma[1]^2 * diag(N) + post_means$tau[1]^2 * exp( - post_means$rho[1] * outer(x,x,'-')^2 ) # Old variance matrix
-  return(Mu_new + t(Sigma_new)%*%solve(Sigma, y - Mu)) # Return the predictions
+pred_mean_calc <- function(x_new) {
+  N_new <- length(x_new) # Number of new predictions
+  Mu <- rep(post_means$alpha, N) # Original GP mean
+  Mu_new <- rep(post_means$alpha, N_new) # New GP mean
+  Sigma_new <- post_means$tau[1]^2 * exp(-post_means$rho[1] * outer(x, x_new, "-")^2) # Cross-covariance of new to old
+  Sigma <- post_means$sigma[1]^2 * diag(N) + post_means$tau[1]^2 * exp(-post_means$rho[1] * outer(x, x, "-")^2) # Old variance matrix
+  return(Mu_new + t(Sigma_new) %*% solve(Sigma, y - Mu)) # Return the predictions
 }
 # pred_mean_calc(0.5) # Test the function
 
 # Now create derivatives
-h = 0.01
-deriv = (pred_mean_calc(x+h) - pred_mean_calc(x-h))/(2*h)
+h <- 0.01
+deriv <- (pred_mean_calc(x + h) - pred_mean_calc(x - h)) / (2 * h)
 
 # Add this new term in - this is the extra standard deviation on each term
-model_data$extra = sqrt(deriv^2 * sigma_x^2)[,1]
+model_data$extra <- sqrt(deriv^2 * sigma_x^2)[, 1]
 
 # Stage 3 fit this new model
 # Run the model - can be slow
-model_run_2 = jags(data = model_data,
-                 parameters.to.save = model_parameters,
-                 model.file=textConnection(model_code_2))
+model_run_2 <- jags(
+  data = model_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code_2)
+)
 
 # Check the fit
 plot(model_run_2)
 
 # Stage 4 produce predictions based on this model
-post_means_2 = model_run_2$BUGSoutput$mean
-N_new = 100
-x_new = seq(min(x), max(x), length = N_new)
-N_new = length(x_new) # Number of new predictions
-Mu = rep(post_means_2$alpha, N) # Original GP mean
-Mu_new = rep(post_means_2$alpha, N_new) # New GP mean
+post_means_2 <- model_run_2$BUGSoutput$mean
+N_new <- 100
+x_new <- seq(min(x), max(x), length = N_new)
+N_new <- length(x_new) # Number of new predictions
+Mu <- rep(post_means_2$alpha, N) # Original GP mean
+Mu_new <- rep(post_means_2$alpha, N_new) # New GP mean
 
 # Note the extra terms in Sigma based on the extra variance needed
-Sigma_new = post_means_2$tau[1]^2 * exp( -post_means_2$rho[1] * outer(x, x_new, '-')^2 ) # Cross-covariance of new to old
-Sigma_star = post_means_2$sigma[1]^2 * diag(N_new) + post_means_2$tau[1]^2 * exp( - post_means_2$rho[1] * outer(x_new,x_new,'-')^2 )
-Sigma = diag(model_data$extra^2) + post_means_2$sigma[1]^2 * diag(N) + post_means_2$tau[1]^2 * exp( - post_means_2$rho[1] * outer(x,x,'-')^2 ) # Old variance matrix
-pred_mean = Mu_new + t(Sigma_new)%*%solve(Sigma, y - Mu) # Get predicted means
-pred_var = Sigma_star - t(Sigma_new)%*%solve(Sigma, Sigma_new) # Predicted variances
+Sigma_new <- post_means_2$tau[1]^2 * exp(-post_means_2$rho[1] * outer(x, x_new, "-")^2) # Cross-covariance of new to old
+Sigma_star <- post_means_2$sigma[1]^2 * diag(N_new) + post_means_2$tau[1]^2 * exp(-post_means_2$rho[1] * outer(x_new, x_new, "-")^2)
+Sigma <- diag(model_data$extra^2) + post_means_2$sigma[1]^2 * diag(N) + post_means_2$tau[1]^2 * exp(-post_means_2$rho[1] * outer(x, x, "-")^2) # Old variance matrix
+pred_mean <- Mu_new + t(Sigma_new) %*% solve(Sigma, y - Mu) # Get predicted means
+pred_var <- Sigma_star - t(Sigma_new) %*% solve(Sigma, Sigma_new) # Predicted variances
 
 # Plot output
-plot(x,y) # True x and y, remember x is unobserved
-lines(x_new, pred_mean, col='red')
-points(x_obs, y, col = 'green') # Observed x values
+plot(x, y) # True x and y, remember x is unobserved
+lines(x_new, pred_mean, col = "red")
+points(x_obs, y, col = "green") # Observed x values
 
 # Now add in the uncertainties
-pred_low = pred_mean - 1.96 * sqrt(diag(pred_var))
-pred_high = pred_mean + 1.96 * sqrt(diag(pred_var))
-lines(x_new, pred_low, col = 'red', lty = 2)
-lines(x_new, pred_high, col = 'red', lty = 2)
-
-
-
+pred_low <- pred_mean - 1.96 * sqrt(diag(pred_var))
+pred_high <- pred_mean + 1.96 * sqrt(diag(pred_var))
+lines(x_new, pred_low, col = "red", lty = 2)
+lines(x_new, pred_high, col = "red", lty = 2)

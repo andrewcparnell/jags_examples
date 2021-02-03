@@ -6,7 +6,7 @@
 # Some JAGS code to fit a Dirichlet AR(1) model
 
 # Some boiler plate code to clear the workspace, and load in required packages
-rm(list=ls()) # Clear the workspace
+rm(list = ls()) # Clear the workspace
 library(R2jags)
 library(bayesm)
 
@@ -34,31 +34,35 @@ library(bayesm)
 # Some R code to simulate data from the above model
 # First AR1
 set.seed(123)
-T = 100
-t_seq = 1:T
-R = 4
-alpha = rep(1, R)
-beta = runif(R, 0.2, 0.8)
-sigma_a = runif(R, 0.1, 0.3)
-y = log_a =  matrix(NA, nrow = T, ncol = 4)
-log_a[1,] = 0
-y[1,] = rdirichlet(exp(log_a[1,]))
-for(t in 2:T) {
-  for(r in 1:R) log_a[t,r] = rnorm(1, alpha[r] + beta[r] * log_a[t-1, r],
-                                   sigma_a[r])
-  y[t,] = rdirichlet(exp(log_a[t,]))
+T <- 100
+t_seq <- 1:T
+R <- 4
+alpha <- rep(1, R)
+beta <- runif(R, 0.2, 0.8)
+sigma_a <- runif(R, 0.1, 0.3)
+y <- log_a <- matrix(NA, nrow = T, ncol = 4)
+log_a[1, ] <- 0
+y[1, ] <- rdirichlet(exp(log_a[1, ]))
+for (t in 2:T) {
+  for (r in 1:R) {
+    log_a[t, r] <- rnorm(
+      1, alpha[r] + beta[r] * log_a[t - 1, r],
+      sigma_a[r]
+    )
+  }
+  y[t, ] <- rdirichlet(exp(log_a[t, ]))
 }
 # plot
-plot(t_seq,y[,1],type='l', ylim = c(0, 1))
-lines(t_seq,y[,2], col = 2)
-lines(t_seq,y[,3], col = 3)
-lines(t_seq,y[,4], col = 4)
+plot(t_seq, y[, 1], type = "l", ylim = c(0, 1))
+lines(t_seq, y[, 2], col = 2)
+lines(t_seq, y[, 3], col = 3)
+lines(t_seq, y[, 4], col = 4)
 
 # Jags code ---------------------------------------------------------------
 
 # Jags code to fit the model to the simulated data
 # This code is for a general AR(p) model
-model_code = '
+model_code <- "
 model
 {
   for (r in 1:R) {
@@ -88,21 +92,23 @@ model
     sigma_a[r] ~ dunif(0, 100)
   }
 }
-'
+"
 
 # Set up the data
-model_data = list(T = T, R = R, y = y)
+model_data <- list(T = T, R = R, y = y)
 
 # Choose the parameters to watch
-model_parameters =  c("alpha","beta","mean_a")
+model_parameters <- c("alpha", "beta", "mean_a")
 
 # Run the model
-model_run = jags(data = model_data,
-                 parameters.to.save = model_parameters,
-                 model.file=textConnection(model_code),
-                 n.iter = 10000,
-                 n.burnin = 2000,
-                 n.thin = 8)
+model_run <- jags(
+  data = model_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code),
+  n.iter = 10000,
+  n.burnin = 2000,
+  n.thin = 8
+)
 
 # Simulated results -------------------------------------------------------
 
@@ -111,31 +117,29 @@ model_run = jags(data = model_data,
 print(model_run)
 
 # Look at alpha
-par(mfrow=c(2, 2))
-hist(model_run$BUGSoutput$sims.list$alpha[,1])
-hist(model_run$BUGSoutput$sims.list$alpha[,2])
-hist(model_run$BUGSoutput$sims.list$alpha[,3])
-hist(model_run$BUGSoutput$sims.list$alpha[,4])
+par(mfrow = c(2, 2))
+hist(model_run$BUGSoutput$sims.list$alpha[, 1])
+hist(model_run$BUGSoutput$sims.list$alpha[, 2])
+hist(model_run$BUGSoutput$sims.list$alpha[, 3])
+hist(model_run$BUGSoutput$sims.list$alpha[, 4])
 
-par(mfrow=c(2, 2))
-hist(model_run$BUGSoutput$sims.list$beta[,1])
-hist(model_run$BUGSoutput$sims.list$beta[,2])
-hist(model_run$BUGSoutput$sims.list$beta[,3])
-hist(model_run$BUGSoutput$sims.list$beta[,4])
+par(mfrow = c(2, 2))
+hist(model_run$BUGSoutput$sims.list$beta[, 1])
+hist(model_run$BUGSoutput$sims.list$beta[, 2])
+hist(model_run$BUGSoutput$sims.list$beta[, 3])
+hist(model_run$BUGSoutput$sims.list$beta[, 4])
 
 # Get the mean over time
-post_mean_a = model_run$BUGSoutput$sims.list$mean_a
-post_mean_a_mean = apply(post_mean_a, c(2, 3), 'mean')
+post_mean_a <- model_run$BUGSoutput$sims.list$mean_a
+post_mean_a_mean <- apply(post_mean_a, c(2, 3), "mean")
 
 # plot
-par(mfrow=c(2, 2))
-plot(t_seq,y[,1],type='l', ylim = c(0, 1))
-lines(t_seq, post_mean_a_mean[,1], lty = 'dotted')
-plot(t_seq,y[,2],type='l', ylim = c(0, 1), col = 2)
-lines(t_seq, post_mean_a_mean[,2], lty = 'dotted', col = 2)
-plot(t_seq,y[,3],type='l', ylim = c(0, 1), col = 2)
-lines(t_seq, post_mean_a_mean[,3], lty = 'dotted', col = 3)
-plot(t_seq,y[,4],type='l', ylim = c(0, 1), col = 2)
-lines(t_seq, post_mean_a_mean[,4], lty = 'dotted', col = 4)
-
-
+par(mfrow = c(2, 2))
+plot(t_seq, y[, 1], type = "l", ylim = c(0, 1))
+lines(t_seq, post_mean_a_mean[, 1], lty = "dotted")
+plot(t_seq, y[, 2], type = "l", ylim = c(0, 1), col = 2)
+lines(t_seq, post_mean_a_mean[, 2], lty = "dotted", col = 2)
+plot(t_seq, y[, 3], type = "l", ylim = c(0, 1), col = 2)
+lines(t_seq, post_mean_a_mean[, 3], lty = "dotted", col = 3)
+plot(t_seq, y[, 4], type = "l", ylim = c(0, 1), col = 2)
+lines(t_seq, post_mean_a_mean[, 4], lty = "dotted", col = 4)

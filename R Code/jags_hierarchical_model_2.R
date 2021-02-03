@@ -6,7 +6,7 @@
 # In this code we generate some data from a nested hierarchical model and fit it using JAGS. We then interpret the output
 
 # Some boiler plate code to clear the workspace, and load in required packages
-rm(list=ls()) # Clear the workspace
+rm(list = ls()) # Clear the workspace
 library(R2jags)
 
 # Maths -------------------------------------------------------------------
@@ -36,28 +36,28 @@ library(R2jags)
 # Simulate data -----------------------------------------------------------
 
 # Some R code to simulate data from the above model
-M1 = 5 # Number of groups
-M2 = 3 # Number of sub-groups
-alpha = 2
-sigma = 1
-sigma_b = 3
-sigma_c = 2
+M1 <- 5 # Number of groups
+M2 <- 3 # Number of sub-groups
+alpha <- 2
+sigma <- 1
+sigma_b <- 3
+sigma_c <- 2
 # Set the seed so this is repeatable
 set.seed(123)
 # The below provides the number of observations in each group and sub-group
-njk = matrix(sample(10:20, M1 * M2, replace = TRUE), ncol = M2, nrow = M1)
-N = sum(njk)
-b = rnorm(M1, 0, sigma_b)
-c = matrix(rnorm(M1*M2, 0, sigma_c), ncol = M2, nrow = M1)
-group = rep(1:M1, times = rowSums(njk))
+njk <- matrix(sample(10:20, M1 * M2, replace = TRUE), ncol = M2, nrow = M1)
+N <- sum(njk)
+b <- rnorm(M1, 0, sigma_b)
+c <- matrix(rnorm(M1 * M2, 0, sigma_c), ncol = M2, nrow = M1)
+group <- rep(1:M1, times = rowSums(njk))
 # Now create a vector which links the sub-groups to the observations
-subgroup = NULL
-for(i in 1:M1) {
-  subgroup = c(subgroup, rep(1:M2, times = njk[i, ]))
+subgroup <- NULL
+for (i in 1:M1) {
+  subgroup <- c(subgroup, rep(1:M2, times = njk[i, ]))
 }
-y = rep(NA, N)
-for(i in 1:N) {
-  y[i] = rnorm(1, mean = alpha + b[group[i]] + c[group[i], subgroup[i]], sd = sigma)
+y <- rep(NA, N)
+for (i in 1:N) {
+  y[i] <- rnorm(1, mean = alpha + b[group[i]] + c[group[i], subgroup[i]], sd = sigma)
 }
 
 # Also creat a plot
@@ -67,7 +67,7 @@ boxplot(y ~ group + subgroup)
 
 # Jags code to fit the model to the simulated data
 
-model_code = '
+model_code <- "
 model
 {
   # Likelihood
@@ -87,18 +87,20 @@ model
   sigma_b ~ dt(0, 10^-2, 1)T(0,)
   sigma_c ~ dt(0, 10^-2, 1)T(0,)
 }
-'
+"
 
 # Set up the data
-model_data = list(N = N, y = y, M1 = M1, M2 = M2, group = group, subgroup = subgroup)
+model_data <- list(N = N, y = y, M1 = M1, M2 = M2, group = group, subgroup = subgroup)
 
 # Choose the parameters to watch
-model_parameters =  c("alpha", "b", "c", "sigma", "sigma_b", "sigma_c")
+model_parameters <- c("alpha", "b", "c", "sigma", "sigma_b", "sigma_c")
 
 # Run the model
-model_run = jags(data = model_data,
-                 parameters.to.save = model_parameters,
-                 model.file=textConnection(model_code))
+model_run <- jags(
+  data = model_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code)
+)
 
 # Simulated results -------------------------------------------------------
 
@@ -106,28 +108,28 @@ model_run = jags(data = model_data,
 # Also look at the R-hat values - they need to be close to 1 if convergence has been achieved
 plot(model_run)
 print(model_run)
-#traceplot(model_run)
+# traceplot(model_run)
 
 # Get the posterior samples
-post = model_run$BUGSoutput$sims.list
+post <- model_run$BUGSoutput$sims.list
 
 # Compare alpha with true value
 hist(post$alpha, breaks = 30)
-abline(v = alpha, col = 'red')
+abline(v = alpha, col = "red")
 
 # Comapre b with true values
-par(mfrow=c(M1, 1))
+par(mfrow = c(M1, 1))
 for (i in 1:M1) {
-  hist(post$b[,i], breaks = 30)
-  abline(v = b[i], col = 'red')
+  hist(post$b[, i], breaks = 30)
+  abline(v = b[i], col = "red")
 }
 
 # Comapre b with true values
-par(mfrow=c(M1, M2))
+par(mfrow = c(M1, M2))
 for (i in 1:M1) {
   for (j in 1:M2) {
-    hist(post$c[,i, j], breaks = 30)
-    abline(v = c[i, j], col = 'red')
+    hist(post$c[, i, j], breaks = 30)
+    abline(v = c[i, j], col = "red")
   }
 }
 

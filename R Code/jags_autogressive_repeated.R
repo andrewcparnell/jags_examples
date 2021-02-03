@@ -6,7 +6,7 @@
 # Some JAGS code to fit a repeated measures AR(1)
 
 # Some boiler plate code to clear the workspace, and load in required packages
-rm(list=ls()) # Clear the workspace
+rm(list = ls()) # Clear the workspace
 library(R2jags)
 
 # Maths -------------------------------------------------------------------
@@ -19,7 +19,7 @@ library(R2jags)
 # phi = autocorrelation/autoregressive (AR) parameter
 # phi_j = Some of the models below have multiple AR parameters, j = 1,..P
 # sigma_y = standard deviation for repeated measures
-# sigma_b = residual standard deviation of time series 
+# sigma_b = residual standard deviation of time series
 
 # Likelihood
 # For AR(1)
@@ -38,30 +38,30 @@ library(R2jags)
 # Some R code to simulate data from the above model
 # First AR1
 set.seed(123)
-T = 100
-num_obs_per_time = sample(1:5, T, replace=TRUE) # Num obs per time point
-t_seq = 1:T
-t_seq_2 = rep(t_seq, times = num_obs_per_time)
-sigma_b = 1
-sigma_y = 0.5
-alpha = 1
-phi = 0.6
-b = y = rep(NA,T)
-b[1] = rnorm(1,0,sigma_b)
-for(t in 2:T) b[t] = rnorm(1, phi * b[t-1], sigma_b)
-for(i in 1:length(t_seq_2)) {
-  y[i] = rnorm(1, mean = alpha + b[t_seq_2[i]], sigma_y)
+T <- 100
+num_obs_per_time <- sample(1:5, T, replace = TRUE) # Num obs per time point
+t_seq <- 1:T
+t_seq_2 <- rep(t_seq, times = num_obs_per_time)
+sigma_b <- 1
+sigma_y <- 0.5
+alpha <- 1
+phi <- 0.6
+b <- y <- rep(NA, T)
+b[1] <- rnorm(1, 0, sigma_b)
+for (t in 2:T) b[t] <- rnorm(1, phi * b[t - 1], sigma_b)
+for (i in 1:length(t_seq_2)) {
+  y[i] <- rnorm(1, mean = alpha + b[t_seq_2[i]], sigma_y)
 }
 
 # plot
-plot(t_seq_2,y,type='p')
+plot(t_seq_2, y, type = "p")
 
 # Jags code ---------------------------------------------------------------
 
 # Jags code to fit the model to the simulated data
 # This code is for a general AR(p) model
 
-model_code = '
+model_code <- "
 model
 {
   # Likelihood
@@ -82,25 +82,29 @@ model
   tau_b <- 1/pow(sigma_b,2)
   sigma_b ~ dunif(0.0,10.0)
 }
-'
+"
 
 # Set up the data
-model_data = list(T = T, 
-                  T_big = length(t_seq_2), 
-                  b_select = t_seq_2,
-                  y = y)
+model_data <- list(
+  T = T,
+  T_big = length(t_seq_2),
+  b_select = t_seq_2,
+  y = y
+)
 
 # Choose the parameters to watch
-model_parameters =  c("alpha","phi","sigma_y", 'sigma_b')
+model_parameters <- c("alpha", "phi", "sigma_y", "sigma_b")
 
 # Run the model
-model_run = jags(data = model_data,
-                 parameters.to.save = model_parameters,
-                 model.file=textConnection(model_code),
-                 n.chains=4, # Number of different starting positions
-                 n.iter=1000, # Number of iterations
-                 n.burnin=200, # Number of iterations to remove at start
-                 n.thin=2) # Amount of thinning
+model_run <- jags(
+  data = model_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code),
+  n.chains = 4, # Number of different starting positions
+  n.iter = 1000, # Number of iterations
+  n.burnin = 200, # Number of iterations to remove at start
+  n.thin = 2
+) # Amount of thinning
 
 # Simulated results -------------------------------------------------------
 
@@ -110,18 +114,19 @@ print(model_run)
 # Fitted values -----------------------------------------------------------
 
 # Choose the parameters to watch
-model_parameters =  c("b")
+model_parameters <- c("b")
 
 # Run the model
-model_run_fit = jags(data = model_data,
-                 parameters.to.save = model_parameters,
-                 model.file=textConnection(model_code),
-                 n.chains=4, # Number of different starting positions
-                 n.iter=1000, # Number of iterations
-                 n.burnin=200, # Number of iterations to remove at start
-                 n.thin=2) # Amount of thinning
+model_run_fit <- jags(
+  data = model_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code),
+  n.chains = 4, # Number of different starting positions
+  n.iter = 1000, # Number of iterations
+  n.burnin = 200, # Number of iterations to remove at start
+  n.thin = 2
+) # Amount of thinning
 
 # plot
-plot(t_seq_2,y,type='p')
-lines(t_seq, model_run_fit$BUGSoutput$mean$b, col='red')
-
+plot(t_seq_2, y, type = "p")
+lines(t_seq, model_run_fit$BUGSoutput$mean$b, col = "red")

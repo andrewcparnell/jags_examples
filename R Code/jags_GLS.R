@@ -37,27 +37,27 @@ library(MASS) # To simualte from MVN
 # Simulate data -----------------------------------------------------------
 
 # Some R code to simulate data from the above model
-N = 50
-alpha = 2
-beta = 3
-Theta = c(alpha, beta)
+N <- 50
+alpha <- 2
+beta <- 3
+Theta <- c(alpha, beta)
 set.seed(123)
-x = sort(runif(N))
-X = cbind(1, x)
-rho = 0.7
-V = matrix(NA, ncol = N, nrow = N)
-for(i in 1:N) {
-  for(j in 1:N) {
-    V[i,j ] = rho^abs(i - j)
+x <- sort(runif(N))
+X <- cbind(1, x)
+rho <- 0.7
+V <- matrix(NA, ncol = N, nrow = N)
+for (i in 1:N) {
+  for (j in 1:N) {
+    V[i, j] <- rho^abs(i - j)
   }
 }
-y = mvrnorm(1, mu = X%*%Theta, Sigma = V)
+y <- mvrnorm(1, mu = X %*% Theta, Sigma = V)
 # plot(x, y)
 
 # Jags code ---------------------------------------------------------------
 
 # Jags code to fit the model to the simulated data
-model_code = '
+model_code <- "
 model{
   # Likelihood
   y ~ dmnorm.vcov(X%*%Theta, V)
@@ -72,18 +72,22 @@ model{
   }
   rho ~ dunif(0, 1)
 }
-'
+"
 
-model_parameters =  c("Theta", "rho")
-model_data = list(y = y,
-                  N = length(y),
-                  X = X,
-                  p = ncol(X))
+model_parameters <- c("Theta", "rho")
+model_data <- list(
+  y = y,
+  N = length(y),
+  X = X,
+  p = ncol(X)
+)
 
 # Run the model - can be slow
-model_run = jags(data = model_data,
-                 parameters.to.save = model_parameters,
-                 model.file=textConnection(model_code))
+model_run <- jags(
+  data = model_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code)
+)
 
 # Simulated results -------------------------------------------------------
 
@@ -101,14 +105,18 @@ data(longley)
 # g<-gls(Employed ~ GNP,correlation=corAR1(form=~Year),data=longley)
 
 # In Jags we're doing to run
-model_data = list(y = longley$Employed,
-                  N = nrow(longley),
-                  X = cbind(1, longley$GNP),
-                  p = 2)
+model_data <- list(
+  y = longley$Employed,
+  N = nrow(longley),
+  X = cbind(1, longley$GNP),
+  p = 2
+)
 
-model_run = jags(data = model_data,
-                 parameters.to.save = model_parameters,
-                 model.file=textConnection(model_code))
+model_run <- jags(
+  data = model_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code)
+)
 plot(model_run)
 
 # Quite a strong degree of autocorrelation from rho, and interesting estimates of effect of GSP (not shown well on plot)

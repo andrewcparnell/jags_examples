@@ -1,7 +1,7 @@
 # Header ------------------------------------------------------------------
 
 # Fitting a exponential regression in JAGS
-# Bruna Wundervald 
+# Bruna Wundervald
 
 # In this file we fit a Exponential model for survival analysis
 library(R2jags)
@@ -28,7 +28,7 @@ library(patchwork) # devtools::install_github("thomasp85/patchwork")
 
 # Simulate data -----------------------------------------------------------
 set.seed(123)
-T = 1000
+T <- 1000
 x_1 <- rnorm(n = T, mean = 1, sd = 1)
 x_2 <- sample(c(0:1), size = T, replace = TRUE)
 lambda_0 <- 0.3
@@ -40,7 +40,7 @@ t <- rexp(n = T, rate = lambda_0 * mu)
 # Jags code ---------------------------------------------------------------
 
 # Jags code to fit the model to the simulated data
-model_code = '
+model_code <- "
 model
 {
   # Likelihood
@@ -54,21 +54,23 @@ model
   beta_1 ~ dnorm(0.0, 0.01)
   beta_2 ~ dnorm(0.0, 0.01)
 }
-'
+"
 # Set up the data
-model_data = list(T = T, t = t, x_1 = x_1, x_2 = x_2)
+model_data <- list(T = T, t = t, x_1 = x_1, x_2 = x_2)
 
 # Choose the parameters to watch
-model_parameters =  c("beta_1", "beta_2", "lambda_0")
+model_parameters <- c("beta_1", "beta_2", "lambda_0")
 
 # Run the model
-model_run = jags(data = model_data,
-                 parameters.to.save = model_parameters,
-                 model.file = textConnection(model_code),
-                 n.chains = 4,
-                 n.iter = 1000,
-                 n.burnin = 200,
-                 n.thin = 2)
+model_run <- jags(
+  data = model_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code),
+  n.chains = 4,
+  n.iter = 1000,
+  n.burnin = 200,
+  n.thin = 2
+)
 
 # Check the output - are the true values inside the 95% CI?
 # Also look at the R-hat values - they need to be close to 1 if convergence has been achieved
@@ -81,49 +83,57 @@ pars <- model_run$BUGSoutput$summary[c(1, 2, 4)]
 
 x_1 <- sort(x_1)
 
-surv_func <- function(i, trt){
-  if(trt == 0){
+surv_func <- function(i, trt) {
+  if (trt == 0) {
     H <- pars[3] * exp(pars[1] * x_1[i] + pars[2] * 0)
-  } else { H <- pars[3] * exp(pars[1] * x_1[i] + pars[2] * 1) }
-  
-  # Survival function 
+  } else {
+    H <- pars[3] * exp(pars[1] * x_1[i] + pars[2] * 1)
+  }
+
+  # Survival function
   S <- exp(-t * H)
   return(S)
 }
 
 survs_trt1 <- c(1, 50, 100, 250, 500, 1000) %>%
-  purrr::map(surv_func, trt = 0) %>% 
-  purrr::map_dfc(enframe) %>% 
-  select_if(str_detect(colnames(.), 'value')) %>% 
+  purrr::map(surv_func, trt = 0) %>%
+  purrr::map_dfc(enframe) %>%
+  select_if(str_detect(colnames(.), "value")) %>%
   set_names(paste0(
-    "x_1 = ", round(x_1[c(1, 50, 100, 250, 500, 1000)], 1))) %>% 
-  tidyr::gather(value = 'surv') %>% 
+    "x_1 = ", round(x_1[c(1, 50, 100, 250, 500, 1000)], 1)
+  )) %>%
+  tidyr::gather(value = "surv") %>%
   dplyr::mutate(time = rep(t, 6))
 
 survs_trt2 <- c(1, 50, 100, 250, 500, 1000) %>%
-  purrr::map(surv_func, trt = 1) %>% 
-  purrr::map_dfc(enframe) %>% 
-  select_if(str_detect(colnames(.), 'value')) %>% 
+  purrr::map(surv_func, trt = 1) %>%
+  purrr::map_dfc(enframe) %>%
+  select_if(str_detect(colnames(.), "value")) %>%
   set_names(paste0(
-    "x_1 = ", round(x_1[c(1, 50, 100, 250, 500, 1000)], 1))) %>% 
-  tidyr::gather(value = 'surv') %>% 
+    "x_1 = ", round(x_1[c(1, 50, 100, 250, 500, 1000)], 1)
+  )) %>%
+  tidyr::gather(value = "surv") %>%
   dplyr::mutate(time = rep(t, 6))
 
-p1 <- survs_trt1 %>% 
+p1 <- survs_trt1 %>%
   ggplot(aes(y = surv, x = time, group = key)) +
   geom_line(aes(colour = key)) +
-  labs(y = 'Survival Function', x = 'Time', 
-       colour = "Covariables at", 
-       title = "Treatment 1") +
+  labs(
+    y = "Survival Function", x = "Time",
+    colour = "Covariables at",
+    title = "Treatment 1"
+  ) +
   xlim(0, 35) +
   theme_bw()
 
-p2 <- survs_trt2 %>% 
+p2 <- survs_trt2 %>%
   ggplot(aes(y = surv, x = time, group = key)) +
   geom_line(aes(colour = key)) +
-  labs(y = 'Survival Function', x = 'Time', 
-       colour = "Covariables at", 
-       title = "Treatment 2") +
+  labs(
+    y = "Survival Function", x = "Time",
+    colour = "Covariables at",
+    title = "Treatment 2"
+  ) +
   xlim(0, 35) +
   theme_bw()
 
@@ -131,27 +141,29 @@ p1 + p2 + plot_layout(ncol = 1)
 
 # Real example ------------------------------------------------------------
 
-df <- survival::veteran %>% 
+df <- survival::veteran %>%
   select(time, age, trt)
 
-# The data is a randomised trial of two treatment regimens 
-# for lung cancer. We consider the covariables age and treatment. 
+# The data is a randomised trial of two treatment regimens
+# for lung cancer. We consider the covariables age and treatment.
 
 
 # Set up the data
-model_data = list(T = T, t = df$time, x_1 = df$age, x_2 = df$trt)
+model_data <- list(T = T, t = df$time, x_1 = df$age, x_2 = df$trt)
 
 # Choose the parameters to watch
-model_parameters =  c("beta_1", "beta_2", "lambda_0")
+model_parameters <- c("beta_1", "beta_2", "lambda_0")
 
 # Run the model
-model_run = jags(data = model_data,
-                 parameters.to.save = model_parameters,
-                 model.file = textConnection(model_code),
-                 n.chains = 4,
-                 n.iter = 1000,
-                 n.burnin = 200,
-                 n.thin = 2)
+model_run <- jags(
+  data = model_data,
+  parameters.to.save = model_parameters,
+  model.file = textConnection(model_code),
+  n.chains = 4,
+  n.iter = 1000,
+  n.burnin = 200,
+  n.thin = 2
+)
 
 # Check the output - are the true values inside the 95% CI?
 # Also look at the R-hat values - they need to be close to 1 if convergence has been achieved
@@ -162,50 +174,56 @@ traceplot(model_run)
 
 # Plotting the results -------------------
 pars <- model_run$BUGSoutput$summary[c(1, 2, 4)]
-surv_func <- function(i, trt){
-  if(trt == 1){ 
+surv_func <- function(i, trt) {
+  if (trt == 1) {
     H <- pars[3] * exp(pars[1] * df$age[i] + pars[2] * 0)
-  } else { 
+  } else {
     H <- pars[3] * exp(pars[1] * df$age[i] + pars[2] * 1)
   }
-  # Survival function 
-  S <- exp(- df$time * H)
+  # Survival function
+  S <- exp(-df$time * H)
   return(S)
 }
 
 
 survs_trt1 <- c(1, 10, 20, 50, 100, 137) %>%
-  purrr::map(surv_func, trt = 1) %>% 
-  purrr::map_dfc(enframe) %>% 
-  select_if(str_detect(colnames(.), 'value')) %>% 
+  purrr::map(surv_func, trt = 1) %>%
+  purrr::map_dfc(enframe) %>%
+  select_if(str_detect(colnames(.), "value")) %>%
   set_names(paste0(
-    "Age = ", round(df$age[c(1, 10, 20, 50, 100, 137)], 1))) %>% 
-  tidyr::gather(value = 'surv') %>% 
+    "Age = ", round(df$age[c(1, 10, 20, 50, 100, 137)], 1)
+  )) %>%
+  tidyr::gather(value = "surv") %>%
   dplyr::mutate(time = rep(df$time, 6))
 
 survs_trt2 <- c(1, 10, 20, 50, 100, 137) %>%
-  purrr::map(surv_func, trt = 2) %>% 
-  purrr::map_dfc(enframe) %>% 
-  select_if(str_detect(colnames(.), 'value')) %>% 
+  purrr::map(surv_func, trt = 2) %>%
+  purrr::map_dfc(enframe) %>%
+  select_if(str_detect(colnames(.), "value")) %>%
   set_names(paste0(
-    "Age = ", round(df$age[c(1, 10, 20, 50, 100, 137)], 1))) %>% 
-  tidyr::gather(value = 'surv') %>% 
+    "Age = ", round(df$age[c(1, 10, 20, 50, 100, 137)], 1)
+  )) %>%
+  tidyr::gather(value = "surv") %>%
   dplyr::mutate(time = rep(df$time, 6))
 
-p1 <- survs_trt1 %>% 
+p1 <- survs_trt1 %>%
   ggplot(aes(y = surv, x = time, group = key)) +
   geom_line(aes(colour = key)) +
-  labs(y = 'Survival Function', x = 'Time', 
-       colour = "Covariables at", title = "Treatment 1") +
+  labs(
+    y = "Survival Function", x = "Time",
+    colour = "Covariables at", title = "Treatment 1"
+  ) +
   xlim(0, 200) +
   theme_bw()
 
 
-p2 <- survs_trt2 %>% 
+p2 <- survs_trt2 %>%
   ggplot(aes(y = surv, x = time, group = key)) +
   geom_line(aes(colour = key)) +
-  labs(y = 'Survival Function', x = 'Time', 
-       colour = "Covariables at", title = "Treatment 2") +
+  labs(
+    y = "Survival Function", x = "Time",
+    colour = "Covariables at", title = "Treatment 2"
+  ) +
   xlim(0, 200) +
   theme_bw()
 
