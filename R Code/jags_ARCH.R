@@ -59,21 +59,22 @@ model
   for (t in 1:T) {
     y[t] ~ dnorm(alpha, tau[t])
     tau[t] <- 1/pow(sigma[t], 2)
+    error[t] <- y[t] - alpha
   }
-  sigma[1] <- abs(y[1]-alpha)
+  sigma[1] <- sigma_1
   for(t in 2:T) {
-    sigma[t] <- sqrt( gamma_1 + gamma_2 * pow(y[t-1] - alpha, 2) )
+    sigma[t] <- sqrt( gamma_1 + gamma_2 * pow(error[t-1], 2) )
   }
 
   # Priors
-  alpha ~ dnorm(0.0, 0.01)
+  alpha ~ dnorm(0, 100^-2)
   gamma_1 ~ dunif(0, 10)
   gamma_2 ~ dunif(0, 1)
 }
 "
 
 # Set up the data
-model_data <- list(T = T, y = y)
+model_data <- list(T = T, y = y, sigma_1 = sd(y))
 
 # Choose the parameters to watch
 model_parameters <- c("gamma_1", "gamma_2", "alpha")
@@ -113,7 +114,11 @@ with(ice2, plot(Age[-1], diff(Del.18O), type = "l"))
 # Set up the data
 real_data <- with(
   ice2,
-  list(T = nrow(ice2) - 1, y = diff(Del.18O))
+  list(
+    T = nrow(ice2) - 1,
+    y = diff(Del.18O),
+    sigma_1 = sd(diff(Del.18O))
+  )
 )
 
 # Save the sigma's the most interesting part!
