@@ -131,7 +131,7 @@ PI <- matrix(
   nrow = length(alpha_post),
   ncol = N
 )
-for (i in 1:nrow(pred)) {
+for (i in 1:nrow(PI)) {
   PI[i, ] <- rnorm(N,
     mean = alpha_post[i] + Z %*% delta_post[i, ],
     sd = sigma_post[i]
@@ -164,7 +164,7 @@ Q_new <- t(D_new) %*% solve(D_new %*% t(D_new))
 Z_new <- B_new %*% Q_new
 
 plot(x, y)
-lines(x_new, alpha_quantile[2] + Z_new %*% delta_quantile[2, ], col = "blue") # Beautifully smooth
+lines(x_new, mean(alpha_post) + Z_new %*% colMeans(delta_post), col = "blue") # Beautifully smooth
 
 # Real example ------------------------------------------------------------
 
