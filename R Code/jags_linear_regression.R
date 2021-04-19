@@ -3,7 +3,7 @@
 # Fitting a linear regression in JAGS
 # Andrew Parnell
 
-# In this code we generate some data from a simple linear regression model and fit is using jags. We then intepret the output.
+# In this code we generate some data from a simple linear regression model and fit is using jags. We then interpret the output.
 
 # Some boiler plate code to clear the workspace, and load in required packages
 rm(list = ls()) # Clear the workspace
