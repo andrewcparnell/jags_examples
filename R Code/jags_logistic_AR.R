@@ -3,6 +3,8 @@
 # Fitting a logistic autoregression in JAGS
 # Andrew Parnell
 
+# NOTE: STILL A WORK IN PROGRESS - NOT A GREAT MODEL
+
 # In this file we fit a Bayesian Generalised Linear Model (GLM) in the form
 # of a logistic time series autoregression
 
