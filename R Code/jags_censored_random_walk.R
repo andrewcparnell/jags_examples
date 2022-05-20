@@ -70,16 +70,10 @@ model
     y[t] ~ dnorm(mu[t_order[t]], sigma^-2)
   }
 
-  # Left censored data
-  for (t in 1:T_lcens){
-    Zl[t] ~ dbern(pl[t])
-		pl[t] <- pnorm(l_cuts[t], mu[t_order[T_obs + t]], sigma^-2)
-  }
-
-	# Right censored data
-  for (t in 1:T_rcens){
-    Zr[t] ~ dbern(pr[t])
-		pr[t] <- 1 - pnorm(r_cuts[t], mu[t_order[T_obs + T_lcens + t]], sigma^-2)
+  # Left censored data has Z = 1, right censored has Z = 0
+  for (t in 1:T_cens){
+    Z[t] ~ dbern(p[t])
+		p[t] <- pnorm(cuts[t], mu[t_order[T_obs + t]], sigma^-2)
   }
 
   # Prior on mu
@@ -95,26 +89,18 @@ model
 "
 
 # Set up the data
-# lim <- matrix(NA, nrow = sum(obs == 0), ncol = 2)
-# for (j in 1:nrow(lim)) {
-#   if(l_censored[obs==0][j] == 1) lim[j,] <- c(l, Inf)
-#   if(r_censored[obs==0][j] == 1) lim[j,] <- c(-Inf, r)
-# }
-l_cuts <- l * l_censored[l_censored == 1]
-r_cuts <- r * r_censored[r_censored == 1]
+cuts <- c(rep(l, sum(l_censored)), rep(r, sum(r_censored)))
+Z <- c(rep(1, sum(l_censored)), rep(0, sum(r_censored)))
 
 # Get the time order right
 t_order <- order(order(c(t[obs == 1], t[obs == 0])))
 
 model_data <- list(y = c(y[obs == 1], rep(NA, sum(obs == 0))),
-                   T = length(y),
                    T_obs = length(y[obs == 1]),
-                   l_cuts = l_cuts,
-                   r_cuts = r_cuts,
-                   T_lcens = length(l_cuts),
-                   T_rcens = length(r_cuts),
-                   Zl = rep(1, length(l_cuts)),
-                   Zr = rep(1, length(r_cuts)),
+                   T = length(y),
+                   cuts = cuts,
+                   T_cens = length(cuts),
+                   Z = Z,
                    h = diff(t),
                    t_order = t_order)
 
