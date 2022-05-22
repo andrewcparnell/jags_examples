@@ -13,17 +13,20 @@ library(tidyverse)
 # Description of the Bayesian mixture model fitted in this file
 # Notation:
 # y_i = data point for observation i
-# mu_k = Location parameter (mean) of the kth cluster
-# pi_k = the weight of the kth cluster (approximately the proportion of data points in the cluster)
-# sigma = the scale (standaard deviation) parameter for each Gaussian distribution in the mixture
+# mu_h = Location parameter (mean) of the hth cluster
+# pi_h = the weight of the hth cluster (approximately the proportion of data points in the cluster)
+# sigma_h = the scale (standard deviation) parameter for the hth Gaussian distribution in the mixture
 
 # Likelihood for two components
-# y_i ~ GM = lambda_1 * N(mu_1, sigma) + lambda_2 * N(mu_2, sigma)
+# y_i ~ DP = pi_1 * N(mu_1, sigma_1) + pi_2 * N(mu_2, sigma_1) + ...
 
 # Priors - all vague
-# mu_k ~ N(0, 10^-2)
-# sigma ~ InverseGamma(0.01 ,0.01)
-# lambda_k ~ Dirichlet(1, 1, ...)
+# mu_h ~ N(0, 10^-2)
+# sigma_h ~ Gamma(0.1 ,0.1)
+# pi_1 = V_1
+# pi_h = ( V_h * (1 - V_{h-1}) * pi_{h-1} ) / V_{h-1} for h = 2, ...
+# V_h ~ beta(1, a)
+# Where a is the fixed concentration parameter
 
 # Simulate data -----------------------------------------------------------
 
@@ -77,7 +80,6 @@ model_run <- jags(
   model.file = textConnection(model_code),
   n.chains = 1
 )
-stop()
 
 # Simulated results -------------------------------------------------------
 
@@ -94,8 +96,6 @@ mu <- post$mean$mu
 pi <- post$mean$pi
 
 N <- length(y)
-N1 <- round(N * pi[1])
-N2 <- round(N * pi[2])
 df <- data.frame(y = y)
 
 df <- df %>%
