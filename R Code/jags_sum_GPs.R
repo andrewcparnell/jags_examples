@@ -1,7 +1,7 @@
 # Header ------------------------------------------------------------------
 
 # A sum of two Gaussian process models in JAGS
-# Andrew Parnell
+# Andrew Parnell and Mateus Maia
 
 # This file fits a sum of Gaussian Process (GP) regression models to data in JAGS, and produces predictions/forecasts
 # It is not meant to converge as the two GPs are non-identifiable
