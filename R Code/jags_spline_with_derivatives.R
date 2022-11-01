@@ -192,4 +192,5 @@ fit_quantile <- apply(fits_deriv, 2, quantile, prob = c(0.25, 0.5, 0.75))
 plot(x_new, fit_quantile[2,], type = 'l')
 lines(x_new, fit_quantile[1,], lty = 'dotted')
 lines(x_new, fit_quantile[3,], lty = 'dotted')
+abline(h = 0)
 
