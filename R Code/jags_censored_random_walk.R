@@ -8,7 +8,7 @@
 # A useful resource for this file was:
 # https://bmcbioinformatics.biomedcentral.com/track/pdf/10.1186/s12859-021-04496-8.pdf
 # and https://github.com/xinyue-qi/Censored-Data-in-JAGS
-# But their files seem wrong so I ammended it and it seems to work better
+# But their files seem a bit strange so I amended it and it seems to work better
 
 # Some boiler plate code to clear the workspace and load in required packages
 rm(list = ls()) # Clear the workspace
@@ -34,7 +34,6 @@ library(R2jags)
 # Prior:
 # sigma ~ unif(0, 100) - vague
 # sigma_b ~ dgamma(a, b) ~ informative if high values for a and b provided
-# mu ~ dnorm(0, 100) - vague
 
 # Simulate data -----------------------------------------------------------
 
