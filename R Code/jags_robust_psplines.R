@@ -24,7 +24,7 @@ library(splines) # Useful for creating the B-spline basis functions
 # delta; the roughness parameter for tau_b prior
 
 # Likelihood
-# y ~ N(B%8%beta, tau^-1)
+# y ~ N(B%*%beta, tau^-1)
 # beta_j ~ N (beta_{j-1},tau_b^-1)
 
 # Priors
