@@ -1,6 +1,8 @@
 # Header ------------------------------------------------------------------
 
-# P-spline model in JAGS with robust specification of the roughness of the penalty.
+# P-spline model in JAGS with robust specification of the roughness of the
+# penalty. This version includes variable smoothness according to the paper
+# of Jullion and Lambert (2007)
 
 # Mateus Maia & Andrew Parnell
 
@@ -27,13 +29,15 @@ library(boot) # For real example
 
 # Likelihood
 # y ~ N(B%*%beta, tau^-1)
-# beta_j ~ N (beta_{j-1},tau_b^-1)
+# beta_j ~ N (beta_{j-1},(lambda_{j} * tau_b)^-1)
 # beta_1 ~ N (0,tau_b_0^-1)
 
 # Priors
 # tau ~ gamma(a_tau, d_tau)
 # tau_b ~ gamma(0.5*nu, 0.5*delta*nu)
 # delta ~ gamma(a_delta,d_delta)
+# lambda_1 <- 1
+# lambda_j ~ gamma(omega, omega) - need to set or learn omega?
 
 # Simulate data -----------------------------------------------------------
 
@@ -64,18 +68,22 @@ model {
   # Likelihood
   for (t in 1:N) {
     y[t] ~ dnorm(inprod(B[t,], beta), tau)
+    y_pred[t] ~ dnorm(inprod(B[t,], beta), tau)
   }
 
   # RW prior on beta
   beta[1] ~ dnorm(0, tau_b_0)
+  lambda[1] <- 1
   for (i in 2:N_knots) {
-    beta[i] ~ dnorm(beta[i-1], tau_b)
+    beta[i] ~ dnorm(beta[i-1], tau_b * lambda[i - 1])
+    lambda[i] ~ dgamma(omega, omega)
   }
 
   # Priors on beta values
   tau ~ dgamma(a_tau, d_tau)
   tau_b ~ dgamma(0.5 * nu, 0.5 * delta * nu)
   delta ~ dgamma(a_delta, d_delta)
+
 }
 "
 
@@ -90,11 +98,12 @@ model_data <- list(
   a_delta = 0.0001, # Default values used in Jullion, A. and Lambert, P., 2007.
   d_delta = 0.0001, # Default values used in Jullion, A. and Lambert, P., 2007.
   tau_b_0 = 0.1,
+  omega = 1,
   nu = 2
 ) # Default values used in Jullion, A. and Lambert, P., 2007.
 
 # Choose the parameters to watch
-model_parameters <- c("beta", "tau", "tau_b", "delta")
+model_parameters <- c("beta", "tau", "tau_b", "delta", "lambda")
 
 # Run the model - can be slow
 model_run <- jags(
@@ -120,7 +129,7 @@ lines(x, B_train %*% beta, col = "red") # True line
 lines(x, B_train %*% beta_quantile[2, ], col = "blue") # Predicted line
 lines(x, B_train %*% beta_quantile[1, ], col = "blue", lty = 2) # Predicted low
 lines(x, B %*% beta_quantile[3, ], col = "blue", lty = 2) # Predicted high
-legend("topleft", c(
+legend("topright", c(
   "True line",
   "Posterior lines (with 50% CI)",
   "Data"
@@ -174,11 +183,12 @@ real_data <- list(
   a_delta = 0.0001, # Default values used in Jullion, A. and Lambert, P., 2007.
   d_delta = 0.0001, # Default values used in Jullion, A. and Lambert, P., 2007.
   tau_b_0 = 0.1,
+  omega = 1,
   nu = 2
 ) # Default values used in Jullion, A. and Lambert, P., 2007.
 
 # Choose the parameters to watch
-real_parameters <- c("beta", "tau", "tau_b", "delta")
+real_parameters <- c("beta", "tau", "tau_b", "delta", "lambda", "y_pred")
 
 # Run the model - can be slow
 real_run <- jags(
@@ -208,3 +218,14 @@ lty = c(1, -1),
 pch = c(-1, 1),
 col = c("blue", "black")
 )
+
+# Posterior predictive - check to see if the model is calibrated
+y_post <- real_run$BUGSoutput$sims.list$y_pred
+y_med <- apply(y_post, 2, 'quantile', 0.5)
+y_low <- apply(y_post, 2, 'quantile', 0.25)
+y_high <- apply(y_post, 2, 'quantile', 0.75)
+plot(y, y_med, ylim = range(c(y_med, y_low, y_high)))
+abline(a = 0, b = 1)
+for (i in 1:length(y)) {
+  lines(c(y[i], y[i]), c(y_low[i], y_high[i]))
+}

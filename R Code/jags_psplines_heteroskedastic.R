@@ -1,6 +1,8 @@
 # Header ------------------------------------------------------------------
 
-# P-spline model in JAGS with robust specification of the roughness of the penalty.
+# P-spline model in JAGS with robust specification of the roughness of the
+# penalty. This version includes a second spline on the variance to model
+# heteroskedasticity
 
 # Mateus Maia & Andrew Parnell
 
@@ -26,14 +28,16 @@ library(boot) # For real example
 # delta; the roughness parameter for tau_b prior
 
 # Likelihood
-# y ~ N(B%*%beta, tau^-1)
-# beta_j ~ N (beta_{j-1},tau_b^-1)
-# beta_1 ~ N (0,tau_b_0^-1)
+# y ~ N(B%*%beta, tau_s^-1)
+# beta[j] ~ N (beta[j-1],tau_b^-1)
+# log(tau_s) ~ N(B %*% beta_tau, tau)
+# beta_tau[j] ~ N(beta[j-1],tau_bs^-1)
 
 # Priors
 # tau ~ gamma(a_tau, d_tau)
-# tau_b ~ gamma(0.5*nu, 0.5*delta*nu)
-# delta ~ gamma(a_delta,d_delta)
+# tau_b ~ gamma(0.5*nu1, 0.5*delta1*nu1)
+# tau_bs ~ gamma(0.5*nu2, 0.5*delta2*nu2)
+# delta[k] ~ gamma(a_delta,d_delta)
 
 # Simulate data -----------------------------------------------------------
 
@@ -63,7 +67,9 @@ model_code <- "
 model {
   # Likelihood
   for (t in 1:N) {
-    y[t] ~ dnorm(inprod(B[t,], beta), tau)
+    y[t] ~ dnorm(inprod(B[t,], beta), exp(log_tau_s[t]))
+    y_pred[t] ~ dnorm(inprod(B[t,], beta), exp(log_tau_s[t]))
+    log_tau_s[t] ~ dnorm(inprod(B[t,], beta_s), tau)
   }
 
   # RW prior on beta
@@ -72,10 +78,18 @@ model {
     beta[i] ~ dnorm(beta[i-1], tau_b)
   }
 
+  # Prior on beta_s
+  beta_s[1] ~ dnorm(0, tau_b_0)
+  for (i in 2:N_knots) {
+    beta_s[i] ~ dnorm(beta_s[i-1], tau_bs)
+  }
+
   # Priors on beta values
   tau ~ dgamma(a_tau, d_tau)
-  tau_b ~ dgamma(0.5 * nu, 0.5 * delta * nu)
-  delta ~ dgamma(a_delta, d_delta)
+  tau_b ~ dgamma(0.5 * nu, 0.5 * delta1 * nu)
+  tau_bs ~ dgamma(0.5 * nu, 0.5 * delta2 * nu)
+  delta1 ~ dgamma(a_delta, d_delta)
+  delta2 ~ dgamma(a_delta, d_delta)
 }
 "
 
@@ -94,7 +108,8 @@ model_data <- list(
 ) # Default values used in Jullion, A. and Lambert, P., 2007.
 
 # Choose the parameters to watch
-model_parameters <- c("beta", "tau", "tau_b", "delta")
+model_parameters <- c("beta", "beta_s", "tau", "tau_b", "tau_bs", "delta1",
+                      "delta2")
 
 # Run the model - can be slow
 model_run <- jags(
@@ -178,7 +193,8 @@ real_data <- list(
 ) # Default values used in Jullion, A. and Lambert, P., 2007.
 
 # Choose the parameters to watch
-real_parameters <- c("beta", "tau", "tau_b", "delta")
+real_parameters <- c("beta", "beta_s", "tau", "tau_b", "tau_bs", "delta1", "delta2",
+                     "y_pred")
 
 # Run the model - can be slow
 real_run <- jags(
@@ -208,3 +224,15 @@ lty = c(1, -1),
 pch = c(-1, 1),
 col = c("blue", "black")
 )
+
+# Posterior predictive - check to see if the model is calibrated
+y_post <- real_run$BUGSoutput$sims.list$y_pred
+y_med <- apply(y_post, 2, 'quantile', 0.5)
+y_low <- apply(y_post, 2, 'quantile', 0.25)
+y_high <- apply(y_post, 2, 'quantile', 0.75)
+plot(y, y_med, ylim = range(c(y_med, y_low, y_high)))
+abline(a = 0, b = 1)
+for (i in 1:length(y)) {
+  lines(c(y[i], y[i]), c(y_low[i], y_high[i]))
+}
+
