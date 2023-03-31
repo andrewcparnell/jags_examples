@@ -138,7 +138,7 @@ model_data <- list(N = N, K = K,
                    N_knots = ncol(B))
 
 # Choose the parameters to watch
-model_parameters <- c("beta", "Sigma_inv", "tau_b", "mu")
+model_parameters <- c("beta", "Sigma_Inv", "tau_b", "mu")
 
 # Run the model - can be slow
 model_run <- jags(
@@ -198,7 +198,7 @@ for (i in 1:ncol(B1_new)) {
 }
 
 # Plot the new interpolated predictions on top
-pick <- 3
+pick <- 1
 mu_interp_pred <- B_new %*% beta_median[,pick]
 mu_pred_interp_2 <- interp(x_new[, 1], x_new[, 2], mu_interp_pred)
 plot(x[, 1], x[, 2], cex = y[,pick] / max(y[,pick]), pch = 19)
