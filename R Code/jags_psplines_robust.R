@@ -1,6 +1,7 @@
 # Header ------------------------------------------------------------------
 
-# P-spline model in JAGS with robust specification of the roughness of the penalty.
+# P-spline model in JAGS with robust specification of the roughness of the
+# penalty.
 
 # Mateus Maia & Andrew Parnell
 
@@ -42,7 +43,10 @@ set.seed(42)
 N <- 200 # Number of observations
 x <- sort(runif(N, 0, 10)) # Create some covariate values
 nIknots_sim <- 100
-knots <- quantile(x, seq(0, 1, length.out = nIknots_sim + 2))[-c(1, nIknots_sim + 2)] # Setting the same number of observations by node
+# Setting the same number of observations by node
+knots <- quantile(x, seq(0, 1,
+                         length.out = nIknots_sim + 2))[-c(1,
+                                                           nIknots_sim + 2)]
 B <- splines::ns(x = x, knots = knots, intercept = FALSE)
 tau_b <- 1 # Parameters as above
 tau <- 10
@@ -51,10 +55,10 @@ y <- rnorm(N, mean = B %*% beta, sd = sqrt(tau^-1))
 
 # Setting the nIknots and the basis that will be used
 nIknots <- 100
-knots <- quantile(x, seq(0, 1, length.out = nIknots + 2))[-c(1, nIknots + 2)] # Setting the same number of observations by node
+# Setting the same number of observations by node
+knots <- quantile(x, seq(0, 1, length.out = nIknots + 2))[-c(1, nIknots + 2)]
 B_train <- splines::ns(x = x, knots = knots, intercept = FALSE)
 plot(x, y)
-
 
 # Jags code ---------------------------------------------------------------
 
@@ -106,7 +110,8 @@ plot(model_run)
 
 # Simulated results -------------------------------------------------------
 
-# Results and output of the simulated example, to include convergence checking, output plots, interpretation etc
+# Results and output of the simulated example, to include convergence checking,
+# output plots, interpretation etc
 # print(model_run)
 
 # Get the posterior betas and 50% CI
@@ -131,14 +136,17 @@ col = c("red", "blue", "black")
 )
 
 # Create some new predictions on a grid of new values
-# Needs to be in the same range as the previous values (if not you need to go back to the creation of B above)
+# Needs to be in the same range as the previous values (if not you need to go
+# back to the creation of B above)
 x_new <- seq(min(x), max(x), length = 1000)
 knots <- quantile(x, seq(0, 1, length.out = nIknots + 2))[-c(1, nIknots + 2)]
 B_new <- splines::ns(x = x_new, knots = knots, intercept = FALSE)
 plot(x, y)
 lines(x_new, B_new %*% beta_quantile[2, ], col = "blue") # Beautifully smooth
-lines(x_new, B_new %*% beta_quantile[1, ], col = "blue", lty = 2) # Predicted low
-lines(x_new, B_new %*% beta_quantile[3, ], col = "blue", lty = 2) # Predicted high
+# Predicted low
+lines(x_new, B_new %*% beta_quantile[1, ], col = "blue", lty = 2)
+# Predicted high
+lines(x_new, B_new %*% beta_quantile[3, ], col = "blue", lty = 2)
 lines(x, B_train %*% beta, col = "red") # True line
 legend("topright", c(
   "True line",
@@ -160,7 +168,8 @@ plot(x, y)
 
 # Set up the basis functions
 nIknots <- 100
-knots <- quantile(x, seq(0, 1, length.out = nIknots + 2))[-c(1, nIknots + 2)] # Setting the same number of observations by node
+# Setting the same number of observations by node
+knots <- quantile(x, seq(0, 1, length.out = nIknots + 2))[-c(1, nIknots + 2)]
 B_train <- splines::ns(x = x, knots = knots, intercept = FALSE)
 
 # Set up the data
@@ -198,8 +207,10 @@ knots <- quantile(x, seq(0, 1, length.out = nIknots + 2))[-c(1, nIknots + 2)]
 B_new <- splines::ns(x = x_new, knots = knots, intercept = FALSE)
 plot(x, y)
 lines(x_new, B_new %*% beta_quantile[2, ], col = "blue") # Beautifully smooth
-lines(x_new, B_new %*% beta_quantile[1, ], col = "blue", lty = 2) # Predicted low
-lines(x_new, B_new %*% beta_quantile[3, ], col = "blue", lty = 2) # Predicted high
+# Predicted low
+lines(x_new, B_new %*% beta_quantile[1, ], col = "blue", lty = 2)
+# Predicted high
+lines(x_new, B_new %*% beta_quantile[3, ], col = "blue", lty = 2)
 legend("topleft", c(
   "Posterior lines (with 50% CI)",
   "Data"
