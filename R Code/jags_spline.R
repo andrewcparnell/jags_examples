@@ -10,6 +10,8 @@ rm(list = ls())
 library(R2jags)
 library(MASS) # Useful for mvrnorm function
 library(splines) # Useful for creating the B-spline basis functions
+library(boot)
+
 # Maths -------------------------------------------------------------------
 
 # Notation:
@@ -152,8 +154,54 @@ lines(x_new, B_new %*% beta_quantile[2, ], col = "blue") # Beautifully smooth
 
 # Real example ------------------------------------------------------------
 
-# Data wrangling and jags code to run the model on a real data set in the data directory
+# Use the motorbike data from boot
+# Use times as the covariate and accel as the response
+x <- motor$times
+y <- motor$accel
+plot(x, y)
 
+# Set up the basis functions
+B <- bs_bbase(x, nseg = 30)
+
+# Set up the data
+real_data <- list(T = length(y), y = y, B = B, N_knots = ncol(B))
+
+# Choose the parameters to watch
+real_parameters <- c("beta", "sigma", "sigma_b")
+
+# Run the model - can be slow
+real_run <- jags(
+  data = real_data,
+  parameters.to.save = real_parameters,
+  model.file = textConnection(model_code)
+)
+plot(real_run)
+
+# Get the solutions
+beta_post <- real_run$BUGSoutput$sims.list$beta
+beta_quantile <- apply(beta_post, 2, quantile, prob = c(0.25, 0.5, 0.75))
+
+# Plot the output with uncertainty bands
+plot(x, y)
+lines(x, B %*% beta_quantile[2, ], col = "blue") # Predicted line
+lines(x, B %*% beta_quantile[1, ], col = "blue", lty = 2) # Predicted low
+lines(x, B %*% beta_quantile[3, ], col = "blue", lty = 2) # Predicted high
+legend("topleft", c(
+  "Posterior lines (with 50% CI)",
+  "Data"
+),
+lty = c(1, -1),
+pch = c(-1, 1),
+col = c("blue", "black")
+)
+
+# Create some new predictions on a grid of new values
+# Needs to be in the same range as the previous values (if not you need to go back to the creation of B above)
+x_new <- seq(min(x), max(x), length = 1000)
+# B_new = bbase(x_new, xl = min(x), xr = max(x))
+B_new <- bs_bbase(x_new, xl = min(x), xr = max(x), nseg = 30)
+plot(x, y)
+lines(x_new, B_new %*% beta_quantile[2, ], col = "blue") # Beautifully smooth
 
 # Other tasks -------------------------------------------------------------
 
