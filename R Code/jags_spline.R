@@ -82,6 +82,14 @@ y <- rnorm(T, mean = B %*% beta, sd = sigma)
 plot(x, y)
 lines(x, B %*% beta, col = "red") # True line
 
+# Also plot the B-splines if helpful - a prettier plot would be created
+# with more x values
+# plot(x, B[,1], ylim = range(B), type = 'n',
+#      ylab = "B")
+# for(j in 1:ncol(B)) {
+#   lines(x, B[,j], col = j)
+# }
+
 # Jags code ---------------------------------------------------------------
 
 # Jags code to fit the model to the simulated data
