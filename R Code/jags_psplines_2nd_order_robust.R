@@ -72,7 +72,7 @@ model {
 
   # RW prior on beta
   beta[1] ~ dnorm(0, tau_b_1)
-  beta[2] ~ dnorm(beta[1], tau_b_2)
+  beta[2] ~ dnorm(0, tau_b_2)
   for (i in 3:N_knots) {
     beta[i] ~ dnorm(2*beta[i-1] - beta[i-2], tau_b)
   }
